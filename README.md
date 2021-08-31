@@ -9,3 +9,7 @@ Features:
 Not yet implemented:
 - Map update for NAC
 - Parallel download
+
+# Build instructions
+
+To build and run from source using stable rust compiler: ``cargo run``
