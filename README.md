@@ -16,6 +16,7 @@ Command line can be invoked using vehicle VIN as a parameter:
 ```
 psa-update <VIN>
 ```
+This will check for available RCC / NAC updates, and interactively ask for download and extraction of the firmware update to a USB device.
 
 # Binaries
 
