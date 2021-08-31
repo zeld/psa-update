@@ -2,14 +2,29 @@
 CLI alternative to PSA (Peugeot / Citroën / Opel) NAC / RCC firmware update, hopefully more robust
 
 Features:
-- Download of RCC / NAC firmware updated
-- Resume of download
+- Download of RCC / NAC firmware updates
+- Resume of download in case of failure
 - Preparation of USB device for car system update
 
 Not yet implemented:
 - Map update for NAC
 - Parallel download
 
-# Build instructions
+# Usage
 
-To build and run from source using stable rust compiler: ``cargo run``
+Command line can be invoked using vehicle VIN as a parameter:
+```
+psa-update <VIN>
+```
+
+# Binaries
+
+Binaries are available for Windows in the release section.
+
+# Building from source
+
+To build and run from source using stable rust compiler toolchain:
+```
+git clone https://github.com/zeld/psa-update.git
+cargo run
+```
