@@ -22,7 +22,7 @@ This will check for available RCC / NAC updates, and interactively ask for downl
 
 # Installation
 
-Binaries are available for Windows (x86-64), Linux (x86-64) and MacOS (x86-64) in the release section. For other platforms the project from source code (see below).
+Binaries are available for Windows (x86-64), Linux (x86-64) and MacOS (x86-64) in the release section. For other platforms the project can be built from source code (see below).
 
 # Building
 
