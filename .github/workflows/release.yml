@@ -46,13 +46,20 @@ jobs:
     - name: Build
       run: cargo build --verbose --release
 
-    - name: Get asset path
+    - name: Package
       shell: bash
       run: |
+        package="psa-update-${{ needs.create-release.outputs.release_version }}-${{ matrix.os }}"
+        mkdir "$package"
+        cp {README.md,LICENCE.md } "$package"
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          echo "ASSET_PATH=./target/release/psa-update.exe" >> $GITHUB_ENV
+          cp "target/release/psa-update.exe" "$package"
+          7z a "$package.zip" "$package"
+          echo "ASSET_PATH=$package.zip" >> $GITHUB_ENV
         else
-          echo "ASSET_PATH=./target/release/psa-update" >> $GITHUB_ENV
+          cp "target/release/psa-update.exe" "$package"
+          tar czf "$package.tar.gz" "$package"
+          echo "ASSET_PATH=$package.tar.gz" >> $GITHUB_ENV
         fi
 
     - name: Upload release archive
