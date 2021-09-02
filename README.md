@@ -5,10 +5,12 @@ Features:
 - Download of RCC / NAC firmware updates
 - Resume of download in case of failure
 - Preparation of USB device for car system update
+- Multiplatform
 
 Not yet implemented:
 - Map update for NAC
 - Parallel download
+- Automatic retry on failure
 
 # Usage
 
@@ -18,11 +20,11 @@ psa-update <VIN>
 ```
 This will check for available RCC / NAC updates, and interactively ask for download and extraction of the firmware update to a USB device.
 
-# Binaries
+# Installation
 
-Binaries are available for Windows in the release section.
+Binaries are available for Windows in the release section. For other platforms it is currently required to build the project from source code (see below).
 
-# Building from source
+# Building
 
 To build and run from source using stable rust compiler toolchain:
 ```
