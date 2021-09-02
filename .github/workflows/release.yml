@@ -57,7 +57,7 @@ jobs:
           7z a "$package.zip" "$package"
           echo "ASSET_PATH=$package.zip" >> $GITHUB_ENV
         else
-          cp "target/release/psa-update.exe" "$package"
+          cp "target/release/psa-update" "$package"
           tar czf "$package.tar.gz" "$package"
           echo "ASSET_PATH=$package.tar.gz" >> $GITHUB_ENV
         fi
