@@ -62,5 +62,5 @@ jobs:
       with:
         upload_url: ${{ needs.create-release.outputs.upload_url }}
         asset_path: ${{env.ASSET_PATH}}
-        asset_name: psa-update-${{ matrix.config.os }}
+        asset_name: psa-update-${{ matrix.os }}
         asset_content_type: application/octet-stream
