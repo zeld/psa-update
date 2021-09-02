@@ -51,7 +51,7 @@ jobs:
       run: |
         package="psa-update-${{ needs.create-release.outputs.release_version }}-${{ matrix.os }}"
         mkdir "$package"
-        cp {README.md,LICENCE.md} "$package"
+        cp "README.md" "LICENCE.md" "$package"
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
           cp "target/release/psa-update.exe" "$package"
           7z a "$package.zip" "$package"
@@ -69,5 +69,5 @@ jobs:
       with:
         upload_url: ${{ needs.create-release.outputs.upload_url }}
         asset_path: ${{env.ASSET_PATH}}
-        asset_name: psa-update-${{ matrix.os }}
+        asset_name: ${{env.ASSET_PATH}}
         asset_content_type: application/octet-stream
