@@ -61,7 +61,7 @@ jobs:
         fetch-depth: 1
 
     - name: Build
-      run: cargo build --verbose --target=${{ matrix.xtarget }} --release
+      run: cargo build --verbose --target=${{ matrix.target }} --release
 
     - name: Package
       shell: bash
