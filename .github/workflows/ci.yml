@@ -33,6 +33,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build
-      run: cargo build --verbose --target=${{ matrix.xtarget }}
+      run: cargo build --verbose --target=${{ matrix.target }}
     - name: Run tests
       run: cargo test --verbose
