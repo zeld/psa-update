@@ -1,6 +1,8 @@
 use std::fs;
 use std::fs::File;
-use std::io::Write;
+use std::vec::Vec;
+
+//use futures::future::try_join_all;
 
 use log::debug;
 
@@ -11,6 +13,8 @@ use clap::{App, Arg};
 use reqwest::Client;
 
 use serde::{Deserialize, Serialize};
+
+use dialoguer::{Confirm, Input};
 
 use indicatif::HumanBytes;
 
@@ -26,74 +30,118 @@ async fn main() -> Result<(), Error> {
     env_logger::init();
 
     let matches = App::new("PSA firmware update.")
-        .version("0.0.1")
+        .version("0.0.2")
         .about("CLI alternative to Peugeot/Citroën/Open update for NAC/RCC firmware updates, hopefully more robust. Supports for resume of downloads.")
-        .arg(
-            Arg::with_name("VIN")
-                .help("Sets the VIN to check for update")
-                .required(true)
-                .index(1),
-        )
+        .arg(Arg::with_name("VIN")
+            .help("Sets the VIN to check for update")
+            .required(true)
+            .index(1))
+        .arg(Arg::with_name("map")
+            .help("Sets the map to check for update. Supported maps:\n\
+                - afr: Africa\n\
+                - alg: Algeria\n\
+                - asia: Asia\n\
+                - eur: Europe\n\
+                - isr: Israel\n\
+                - latam: Latin America\n\
+                - latam-chile: Latin America Chile\n\
+                - mea: Middle East Asia\n\
+                - oce: Oceania\n\
+                - russia: Russia\n\
+                - taiwan: Taïwan")
+            .required(false)
+            .long("map")
+            .takes_value(true))
         .get_matches();
 
-    let vin = matches.value_of("VIN").unwrap_or("");
+    let vin = matches.value_of("VIN").expect("VIN is missing");
+    let map = matches.value_of("map");
 
     let client = Client::new();
 
-    let update_response = request_available_updates(&client, vin).await?;
+    let update_response = request_available_updates(&client, vin, map).await?;
 
     if update_response.software.is_none() {
         println!("No update found");
         return Ok(());
     }
 
+    let mut selected_updates: Vec<SoftwareUpdate> = Vec::new();
+
     for software in update_response.software.unwrap() {
-        for update in software.update {
+        for update in &software.update {
             // A empty update can be sent by the server when there are no available update
             if !update.update_id.is_empty() {
-                println!("Firmware update available: {}", update.update_version);
+                println!("Update available: {}", update.update_version);
                 println!("\tRelease date: {}", update.update_date);
-                let update_size: u64 = update.update_size.parse()?;
+                let update_size: u64 = update.update_size.parse().with_context(|| {
+                    format!("Failed to parse update size: {}", update.update_size)
+                })?;
                 println!("\tSize: {}", HumanBytes(update_size));
-                if confirm_choice("Proceed with update")? {
-                    let licence_filename =
-                        download::download_file(&client, &update.license_url, true).await?;
-                    let update_filename =
-                        download::download_file(&client, &update.update_url, true).await?;
-
-                    let destination_path = prompt("Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32): ")?;
-                    if destination_path.is_empty() {
-                        println!("No location, skipping extraction");
-                    } else {
-                        extract_firmware(&licence_filename, &update_filename, &destination_path)?;
-                    }
+                if confirm("Proceed with update?")? {
+                    selected_updates.push(update.clone());
                 }
             }
+        }
+    }
+
+    if selected_updates.is_empty() {
+        return Ok(());
+    }
+
+    /*
+    let downloads = selected_updates
+        .iter()
+        .map(|u| download_update(&client, &u));
+    let downloaded_updates: Vec<DownloadedUpdate> = try_join_all(downloads).await?;
+     */
+
+    let mut downloaded_updates: Vec<DownloadedUpdate> = Vec::new();
+    for update in selected_updates {
+        downloaded_updates.push(
+            download_update(&client, &update)
+                .await
+                .with_context(|| format!("Failed to download update: {}", update.update_version))?,
+        );
+    }
+
+    let destination_path = prompt("Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32): ")?;
+    if destination_path.is_empty() {
+        println!("No location, skipping extraction");
+    } else {
+        for update in downloaded_updates {
+            extract_update(&update, &destination_path)
+                .with_context(|| format!("Failed to extract update"))?;
         }
     }
 
     Ok(())
 }
 
-fn confirm_choice(message: &str) -> Result<bool, Error> {
-    let confirm_message = format!("{} ([Y]es/[N]o)? ", message);
-    let input = prompt(&confirm_message)?;
-    Ok(input.to_lowercase() == "y")
+async fn download_update(
+    client: &reqwest::Client,
+    software_update: &SoftwareUpdate,
+) -> Result<DownloadedUpdate, Error> {
+    debug!("Downloading update {:?}", software_update);
+    let license_filename = if software_update.license_url.is_empty() {
+        None
+    } else {
+        Some(download::download_file(client, &software_update.license_url, true).await?)
+    };
+    let update_filename =
+        download::download_file(client, &software_update.update_url, true).await?;
+    Ok(DownloadedUpdate {
+        license_filename,
+        update_filename,
+    })
+}
+
+fn confirm(message: &str) -> Result<bool, Error> {
+    Ok(Confirm::new().with_prompt(message).interact()?)
 }
 
 fn prompt(message: &str) -> Result<String, Error> {
-    println!("{}", message);
-    std::io::stdout().flush()?;
-    let mut input = String::new();
-    std::io::stdin().read_line(&mut input)?;
-    // TODO use a crate to properly read from stdin and strip ending newline
-    if let Some('\n') = input.chars().next_back() {
-        input.pop();
-    }
-    if let Some('\r') = input.chars().next_back() {
-        input.pop();
-    }
-    Ok(input)
+    Ok(Input::new().with_prompt(message).interact_text()?)
 }
 
 const UPDATE_URL: &str = "https://api.groupe-psa.com/applications/majesticf/v1/getAvailableUpdate?client_id=1eeecd7f-6c2b-486a-b59c-8e08fca81f54";
@@ -142,7 +190,7 @@ struct UpdateResponse {
     software: Option<Vec<Software>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct Software {
     #[serde(rename = "softwareType")]
     software_type: String,
@@ -153,7 +201,7 @@ struct Software {
     update: Vec<SoftwareUpdate>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct SoftwareUpdate {
     #[serde(rename = "updateId")]
     update_id: String,
@@ -169,21 +217,39 @@ struct SoftwareUpdate {
     license_url: String,
 }
 
+#[derive(Debug)]
+struct DownloadedUpdate {
+    license_filename: Option<String>,
+    update_filename: String,
+}
+
 async fn request_available_updates(
     client: &reqwest::Client,
     vin: &str,
+    map: Option<&str>,
 ) -> Result<UpdateResponse, Error> {
     // Body for firmware update request
     // - ovip-int-firmware-version: Firmware update for Bosch NAC (Navigation Audio Connectée)
     // - rcc-firmware: Firmware update for Continental RCC (Radio Couleur Connectée)
     // Note: other software types exist for NAC maps: map-afr, map-alg, map-asia, map-eur, map-isr, map-latam, map-latam-chile, map-mea, map-oce, map-russia, map-taiwan
-    let body = serde_json::json!({
-        "vin": vin,
-        "softwareTypes": [
-            { "softwareType": "ovip-int-firmware-version" },
-            { "softwareType": "rcc-firmware" }
-        ]
-    });
+    let body = if map == None {
+        serde_json::json!({
+            "vin": vin,
+            "softwareTypes": [
+                { "softwareType": "ovip-int-firmware-version" },
+                { "softwareType": "rcc-firmware" }
+            ]
+        })
+    } else {
+        serde_json::json!({
+            "vin": vin,
+            "softwareTypes": [
+                { "softwareType": "ovip-int-firmware-version" },
+                { "softwareType": "rcc-firmware" },
+                { "softwareType": format!("map-{}", map.unwrap()) }
+            ]
+        })
+    };
 
     let body_as_text = body.to_string();
 
@@ -191,13 +257,10 @@ async fn request_available_updates(
         .post(UPDATE_URL)
         .header("Content-type", "application/json")
         .body(body_as_text)
-        .build()?;
+        .build()
+        .with_context(|| format!("Failed to build update request"))?;
 
-    debug!(
-        "Sending request {:?} with body {:?}",
-        request,
-        request.body()
-    );
+    debug!("Sending request {:?} with body {:?}", request, body);
     let response = client.execute(request).await?;
 
     debug!("Received response {:?}", response);
@@ -219,30 +282,35 @@ async fn request_available_updates(
 }
 
 // Extract firmware update to specified location
-fn extract_firmware(
-    licence_filename: &str,
-    firmware_filename: &str,
-    destination_path: &str,
-) -> Result<(), Error> {
+fn extract_update(update: &DownloadedUpdate, destination_path: &str) -> Result<(), Error> {
     println!("Extracting update to {}", destination_path);
     // TODO check destination available space. Warn if not USB root folder, not empty, not FAT32
 
-    debug!("Copying licence file");
-    let licence_destination_path = format!("{}/license", destination_path);
-    fs::create_dir(&licence_destination_path)
-        .with_context(|| format!("Failed to create directory {}", licence_destination_path))?;
-    let licence_destination = format!("{}/{}", licence_destination_path, licence_filename);
-    fs::copy(licence_filename, licence_destination)?;
+    if update.license_filename != None {
+        debug!("Copying licence file");
+        let licence_destination_path = format!("{}/license", destination_path);
+        fs::create_dir(&licence_destination_path)
+            .with_context(|| format!("Failed to create directory {}", licence_destination_path))?;
+        let licence_destination = format!(
+            "{}/{}",
+            licence_destination_path,
+            update.license_filename.as_ref().unwrap()
+        );
+        fs::copy(
+            update.license_filename.as_ref().unwrap(),
+            licence_destination,
+        )?;
+    }
 
-    debug!("Extracting firmware");
+    debug!("Extracting update");
     let mut ar = Archive::new(
-        File::open(firmware_filename)
-            .with_context(|| format!("Failed to open firmware {}", firmware_filename))?,
+        File::open(&update.update_filename)
+            .with_context(|| format!("Failed to open firmware {}", update.update_filename))?,
     );
     ar.unpack(destination_path).with_context(|| {
         format!(
-            "Failed to extract firware {} to {} ",
-            firmware_filename, destination_path
+            "Failed to extract update {} to {} ",
+            update.update_filename, destination_path
         )
     })?;
     Ok(())

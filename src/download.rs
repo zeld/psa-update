@@ -97,7 +97,7 @@ pub async fn download_file(
 
     let progress_bar = ProgressBar::new(total_content_length);
     progress_bar.set_style(ProgressStyle::default_bar().template(
-        "[{elapsed_precise}] {wide_bar} {bytes:7}/{total_bytes:7}@{bytes_per_sec} ({eta})",
+        "[{elapsed_precise}] {wide_bar} {bytes:9}/{total_bytes:9}@{bytes_per_sec:9} ETA={eta:>3}",
     ));
     progress_bar.set_position(resume_position);
 
