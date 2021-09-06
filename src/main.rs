@@ -14,8 +14,8 @@ use reqwest::Client;
 
 use serde::{Deserialize, Serialize};
 
+use console::Style;
 use dialoguer::{Confirm, Input};
-
 use indicatif::HumanBytes;
 
 use tar::Archive;
@@ -72,12 +72,15 @@ async fn main() -> Result<(), Error> {
         for update in &software.update {
             // A empty update can be sent by the server when there are no available update
             if !update.update_id.is_empty() {
-                println!("Update available: {}", update.update_version);
-                println!("\tRelease date: {}", update.update_date);
+                let cyan = Style::new().cyan();
+                println!("Update available: {}", cyan.apply_to(&update.update_version));
+                let software_type = if software.software_type.starts_with("map") { "Map "} else { "Firmware"};
+                println!("\tSoftware type: {}", cyan.apply_to(&software_type));
+                println!("\tRelease date: {}", cyan.apply_to(&update.update_date));
                 let update_size: u64 = update.update_size.parse().with_context(|| {
                     format!("Failed to parse update size: {}", update.update_size)
                 })?;
-                println!("\tSize: {}", HumanBytes(update_size));
+                println!("\tSize: {}", cyan.apply_to(HumanBytes(update_size)));
                 if confirm("Proceed with update?")? {
                     selected_updates.push(update.clone());
                 }
@@ -266,7 +269,7 @@ async fn request_available_updates(
     debug!("Received response {:?}", response);
 
     let response_text = response.text().await?;
-    debug!("Received reponse body {}", response_text);
+    debug!("Received response body {}", response_text);
 
     let update_response: UpdateResponse = serde_json::from_str(&response_text)
         .with_context(|| format!("Failed to parse response"))?;

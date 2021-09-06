@@ -21,6 +21,7 @@ env_logger = "0.8.4"
 
 anyhow = "1.0.43"
 
+console = "0.14.1"
 dialoguer = "0.8.0"
 indicatif = "0.16.2"
 
