@@ -8,7 +8,7 @@ use log::debug;
 
 use anyhow::{anyhow, Context, Error, Result};
 
-use clap::{App, Arg};
+use clap::{App, Arg, crate_version};
 
 use reqwest::Client;
 
@@ -30,7 +30,7 @@ async fn main() -> Result<(), Error> {
     env_logger::init();
 
     let matches = App::new("PSA firmware update.")
-        .version("0.0.2")
+        .version(crate_version!())
         .about("CLI alternative to Peugeot/Citroën/Open update for NAC/RCC firmware updates, hopefully more robust. Supports for resume of downloads.")
         .arg(Arg::with_name("VIN")
             .help("Sets the VIN to check for update")
