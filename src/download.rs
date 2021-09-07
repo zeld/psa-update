@@ -107,8 +107,9 @@ pub async fn download_file(
         let chunk =
             item.with_context(|| format!("Failed to download file {} from {}", filename, url))?;
         progress_bar.inc(chunk.len() as u64);
-        file.write_all(&chunk)?; // TODO Investigate buffered / async write
+        file.write_all(&chunk).with_context(|| format!("Error writing to file {}", filename))?; // TODO Investigate buffered / async write
     }
+    file.flush().with_context(|| format!("Error flushing file {}", filename))?;
 
     progress_bar.finish();
     Ok(filename)
@@ -166,6 +167,6 @@ fn parse_filename_from_content_disposition(response: &Response) -> Result<Option
 
     match filename {
         Some(x) => Ok(Some(x)),
-        None => Err(anyhow!("Failed to parse content-disposition header")),
+        None => Err(anyhow!("Failed to parse content-disposition header: {}", content_disposition_str)),
     }
 }

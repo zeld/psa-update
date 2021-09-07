@@ -82,7 +82,7 @@ async fn main() -> Result<(), Error> {
                 } else {
                     "Firmware"
                 };
-                println!("\tSoftware type: {}", cyan.apply_to(&software_type));
+                println!("\tType: {}", cyan.apply_to(&software_type));
                 println!("\tRelease date: {}", cyan.apply_to(&update.update_date));
                 let update_size: u64 = update.update_size.parse().with_context(|| {
                     format!("Failed to parse update size: {}", update.update_size)
