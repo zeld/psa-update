@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 
 use console::Style;
 use dialoguer::{Confirm, Input};
-use indicatif::{MultiProgress, HumanBytes};
+use indicatif::{HumanBytes, MultiProgress};
 
 use tar::Archive;
 
@@ -73,15 +73,26 @@ async fn main() -> Result<(), Error> {
             // A empty update can be sent by the server when there are no available update
             if !update.update_id.is_empty() {
                 let cyan = Style::new().cyan();
-                println!("Update available: {}", cyan.apply_to(&update.update_version));
-                let software_type = if software.software_type.starts_with("map") { "Map "} else { "Firmware"};
+                println!(
+                    "Update available: {}",
+                    cyan.apply_to(&update.update_version)
+                );
+                let software_type = if software.software_type.starts_with("map") {
+                    "Map "
+                } else {
+                    "Firmware"
+                };
                 println!("\tSoftware type: {}", cyan.apply_to(&software_type));
                 println!("\tRelease date: {}", cyan.apply_to(&update.update_date));
                 let update_size: u64 = update.update_size.parse().with_context(|| {
                     format!("Failed to parse update size: {}", update.update_size)
                 })?;
                 println!("\tSize: {}", cyan.apply_to(HumanBytes(update_size)));
-                if confirm("Proceed with update?")? {
+                println!("\tURL: {}", cyan.apply_to(&update.update_url));
+                if !update.license_url.is_empty() {
+                    println!("\tLicense URL: {}", cyan.apply_to(&update.license_url));
+                }
+                if confirm("Download update?")? {
                     selected_updates.push(update.clone());
                 }
             }
@@ -99,7 +110,7 @@ async fn main() -> Result<(), Error> {
     // Download concurrently
     let downloads = selected_updates
         .iter()
-        .map(|update| download_update(&client, &update, &multi_progress));
+        .map(|update| download_update(&client, update, &multi_progress));
 
     let downloaded_updates: Vec<DownloadedUpdate> = try_join_all(downloads).await?;
 
@@ -119,13 +130,16 @@ async fn main() -> Result<(), Error> {
 async fn download_update(
     client: &reqwest::Client,
     software_update: &SoftwareUpdate,
-    multi_progress: &MultiProgress
+    multi_progress: &MultiProgress,
 ) -> Result<DownloadedUpdate, Error> {
     debug!("Downloading update {:?}", software_update);
     let license_filename = if software_update.license_url.is_empty() {
         None
     } else {
-        Some(download::download_file(client, &software_update.license_url, multi_progress, false).await?)
+        Some(
+            download::download_file(client, &software_update.license_url, multi_progress, false)
+                .await?,
+        )
     };
     let update_filename =
         download::download_file(client, &software_update.update_url, multi_progress, true).await?;
