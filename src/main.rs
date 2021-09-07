@@ -2,7 +2,7 @@ use std::fs;
 use std::fs::File;
 use std::vec::Vec;
 
-//use futures::future::try_join_all;
+use futures::future::try_join_all;
 
 use log::debug;
 
@@ -16,14 +16,14 @@ use serde::{Deserialize, Serialize};
 
 use console::Style;
 use dialoguer::{Confirm, Input};
-use indicatif::HumanBytes;
+use indicatif::{MultiProgress, HumanBytes};
 
 use tar::Archive;
 
 mod download;
 
 //type Error = Box<dyn std::error::Error>;
-//type Error = anyhow::Error;
+//type Error = anyhow::Error; <- currently in use
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -45,10 +45,10 @@ async fn main() -> Result<(), Error> {
                 - isr: Israel\n\
                 - latam: Latin America\n\
                 - latam-chile: Latin America Chile\n\
-                - mea: Middle East Asia\n\
+                - mea: Middle East\n\
                 - oce: Oceania\n\
                 - russia: Russia\n\
-                - taiwan: Taïwan")
+                - taiwan: Taiwan")
             .required(false)
             .long("map")
             .takes_value(true))
@@ -92,21 +92,16 @@ async fn main() -> Result<(), Error> {
         return Ok(());
     }
 
-    /*
+    // TODO check available disk space
+
+    let multi_progress = MultiProgress::new();
+
+    // Download concurrently
     let downloads = selected_updates
         .iter()
-        .map(|u| download_update(&client, &u));
-    let downloaded_updates: Vec<DownloadedUpdate> = try_join_all(downloads).await?;
-     */
+        .map(|update| download_update(&client, &update, &multi_progress));
 
-    let mut downloaded_updates: Vec<DownloadedUpdate> = Vec::new();
-    for update in selected_updates {
-        downloaded_updates.push(
-            download_update(&client, &update)
-                .await
-                .with_context(|| format!("Failed to download update: {}", update.update_version))?,
-        );
-    }
+    let downloaded_updates: Vec<DownloadedUpdate> = try_join_all(downloads).await?;
 
     let destination_path = prompt("Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32): ")?;
     if destination_path.is_empty() {
@@ -124,15 +119,16 @@ async fn main() -> Result<(), Error> {
 async fn download_update(
     client: &reqwest::Client,
     software_update: &SoftwareUpdate,
+    multi_progress: &MultiProgress
 ) -> Result<DownloadedUpdate, Error> {
     debug!("Downloading update {:?}", software_update);
     let license_filename = if software_update.license_url.is_empty() {
         None
     } else {
-        Some(download::download_file(client, &software_update.license_url, true).await?)
+        Some(download::download_file(client, &software_update.license_url, multi_progress, false).await?)
     };
     let update_filename =
-        download::download_file(client, &software_update.update_url, true).await?;
+        download::download_file(client, &software_update.update_url, multi_progress, true).await?;
     Ok(DownloadedUpdate {
         license_filename,
         update_filename,
