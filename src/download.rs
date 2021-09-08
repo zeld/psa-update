@@ -85,7 +85,7 @@ pub async fn download_file(
     // Need to reset ETA in case of resume, otherwise estimations are biased
     progress_bar.reset_eta();
     progress_bar.set_style(ProgressStyle::default_bar().template(
-        "[{elapsed_precise}] {msg} {wide_bar:.cyan} {bytes:>9}@{bytes_per_sec:<9} ETA={eta:>3}",
+        "[{elapsed_precise}] {msg:.cyan} {wide_bar} {bytes:>9}@{bytes_per_sec:<9} ETA={eta:>3}",
     ).progress_chars("##-"));
     progress_bar.set_message(format!("{}...", filename));
 
