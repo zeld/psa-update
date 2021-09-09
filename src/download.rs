@@ -13,12 +13,13 @@ use reqwest::{Client, Response};
 
 use futures_util::StreamExt;
 
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 // Could not find a suitable crate to download a file that supports for resume
 pub async fn download_file(
     client: &Client,
     url: &str,
+    multi_progress: &MultiProgress,
     try_to_resume: bool,
 ) -> Result<String, Error> {
     let mut resume_position: u64 = 0; // Greater than zero means we will resume download
@@ -79,27 +80,26 @@ pub async fn download_file(
         remaining_content_length
     };
 
-    // TODO check available disk space
+    let progress_bar = multi_progress.add(ProgressBar::new(total_content_length));
+    progress_bar.set_position(resume_position);
+    // Need to reset ETA in case of resume, otherwise estimations are biased
+    progress_bar.reset_eta();
+    progress_bar.set_style(ProgressStyle::default_bar().template(
+        "[{elapsed_precise}] {msg:.cyan} {wide_bar} {bytes:>9}@{bytes_per_sec:<9} ETA={eta:>3}",
+    ).progress_chars("##-"));
+    progress_bar.set_message(format!("{}...", filename));
 
-    // TODO Investigate parallel download
     let mut file = if resume_position == 0 {
-        println!("Downloading file {}...", filename);
+        debug!("Opening {} in create mode", filename);
         File::create(filename.clone())
             .with_context(|| format!("Failed to create file {}", filename))?
     } else {
-        println!("Resuming download of file {}...", filename);
-        debug!("Opening {} in append mode", filename);
+        debug!("Opening {} in append mode for resume", filename);
         OpenOptions::new()
             .append(true)
             .open(filename.clone())
             .with_context(|| format!("Failed to open file {} in append mode", filename))?
     };
-
-    let progress_bar = ProgressBar::new(total_content_length);
-    progress_bar.set_style(ProgressStyle::default_bar().template(
-        "[{elapsed_precise}] {wide_bar} {bytes:7}/{total_bytes:7}@{bytes_per_sec} ({eta})",
-    ));
-    progress_bar.set_position(resume_position);
 
     let mut stream = response.bytes_stream();
 
@@ -107,8 +107,11 @@ pub async fn download_file(
         let chunk =
             item.with_context(|| format!("Failed to download file {} from {}", filename, url))?;
         progress_bar.inc(chunk.len() as u64);
-        file.write_all(&chunk)?; // TODO Investigate buffered / async write
+        file.write_all(&chunk)
+            .with_context(|| format!("Error writing to file {}", filename))?; // TODO Investigate buffered / async write
     }
+    file.flush()
+        .with_context(|| format!("Error flushing file {}", filename))?;
 
     progress_bar.finish();
     Ok(filename)
@@ -166,6 +169,9 @@ fn parse_filename_from_content_disposition(response: &Response) -> Result<Option
 
     match filename {
         Some(x) => Ok(Some(x)),
-        None => Err(anyhow!("Failed to parse content-disposition header")),
+        None => Err(anyhow!(
+            "Failed to parse content-disposition header: {}",
+            content_disposition_str
+        )),
     }
 }
