@@ -1,12 +1,7 @@
-use std::env::current_dir;
-use std::fs;
-use std::fs::File;
 use std::path::Path;
 use std::vec::Vec;
 
 use futures::future::try_join_all;
-
-use log::debug;
 
 use anyhow::{anyhow, Context, Error, Result};
 
@@ -14,17 +9,12 @@ use clap::{crate_version, App, Arg};
 
 use reqwest::Client;
 
-use serde::{Deserialize, Serialize};
-
 use console::Style;
 use dialoguer::{Confirm, Input};
 use indicatif::{HumanBytes, MultiProgress};
 
-use tar::Archive;
-
-use sysinfo::{Disk, DiskExt, System, SystemExt};
-
 mod download;
+mod psa;
 
 //type Error = Box<dyn std::error::Error>;
 //type Error = anyhow::Error; <- currently in use
@@ -63,14 +53,14 @@ async fn main() -> Result<(), Error> {
 
     let client = Client::new();
 
-    let update_response = request_available_updates(&client, vin, map).await?;
+    let update_response = psa::request_available_updates(&client, vin, map).await?;
 
     if update_response.software.is_none() {
         println!("No update found");
         return Ok(());
     }
 
-    let mut selected_updates: Vec<SoftwareUpdate> = Vec::new();
+    let mut selected_updates: Vec<psa::SoftwareUpdate> = Vec::new();
 
     for software in update_response.software.unwrap() {
         for update in &software.update {
@@ -107,23 +97,14 @@ async fn main() -> Result<(), Error> {
         return Ok(());
     }
 
-    // TODO check available disk space
-    let available_space = cwd_available_space();
-    if available_space != None {
-        println!(
-            "Available disk space: {}",
-            HumanBytes(available_space.unwrap())
-        );
-    }
-
     let multi_progress = MultiProgress::new();
 
     // Download concurrently
     let downloads = selected_updates
         .iter()
-        .map(|update| download_update(&client, update, &multi_progress));
+        .map(|update| psa::download_update(&client, update, &multi_progress));
 
-    let downloaded_updates: Vec<DownloadedUpdate> = try_join_all(downloads).await?;
+    let downloaded_updates: Vec<psa::DownloadedUpdate> = try_join_all(downloads).await?;
 
     let destination = prompt("Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32): ")?;
     if destination.is_empty() {
@@ -139,34 +120,12 @@ async fn main() -> Result<(), Error> {
         // TODO check destination available space. Warn if not USB root folder, not empty, not FAT32
 
         for update in downloaded_updates {
-            extract_update(&update, &destination_path)
+            psa::extract_update(&update, destination_path)
                 .with_context(|| format!("Failed to extract update"))?;
         }
     }
 
     Ok(())
-}
-
-async fn download_update(
-    client: &reqwest::Client,
-    software_update: &SoftwareUpdate,
-    multi_progress: &MultiProgress,
-) -> Result<DownloadedUpdate, Error> {
-    debug!("Downloading update {:?}", software_update);
-    let license_filename = if software_update.license_url.is_empty() {
-        None
-    } else {
-        Some(
-            download::download_file(client, &software_update.license_url, multi_progress, false)
-                .await?,
-        )
-    };
-    let update_filename =
-        download::download_file(client, &software_update.update_url, multi_progress, true).await?;
-    Ok(DownloadedUpdate {
-        license_filename,
-        update_filename,
-    })
 }
 
 fn confirm(message: &str) -> Result<bool, Error> {
@@ -175,222 +134,4 @@ fn confirm(message: &str) -> Result<bool, Error> {
 
 fn prompt(message: &str) -> Result<String, Error> {
     Ok(Input::new().with_prompt(message).interact_text()?)
-}
-
-const UPDATE_URL: &str = "https://api.groupe-psa.com/applications/majesticf/v1/getAvailableUpdate?client_id=1eeecd7f-6c2b-486a-b59c-8e08fca81f54";
-
-/*
-Sample response:
-{
-    "requestResult": "OK",
-    "installerURL": "https://majestic.mpsa.com/mjf00-web/rest/UpdateDownload?updateId\u003d000000001570806588\u0026uin\u003d00000000000000000000\u0026type\u003dfw",
-    "vin": "xxx",
-    "software": [{
-        "softwareType": "map-eur",
-        "updateRequestResult": "OK",
-        "currentSoftwareVersion": "14.0.0-r0",
-        "update": [{
-            "updateId": "002315011610132966",
-            "updateSize": "9875589120",
-            "updateVersion": "20.0.0-r0",
-            "updateDate": "2021-02-07 11:47:22.0",
-            "updateURL": "http://download.tomtom.com/OEM/PSA/MAP/PSA_map-eur_20.0.0-r0-NAC_EUR_WAVE2.tar",
-            "licenseURL": ""
-        }]
-    }, {
-        "softwareType": "ovip-int-firmware-version",
-        "updateRequestResult": "OK",
-        "currentSoftwareVersion": "21.07.67.32_NAC-r0",
-        "update": [{
-            "updateId": "001315031613548831",
-            "updateSize": "2730659840",
-            "updateVersion": "21.08.87.32_NAC-r1",
-            "updateDate": "2021-04-19 17:38:57.0",
-            "updateURL": "https://majestic-web.mpsa.com/mjf00-web/rest/UpdateDownload?updateId\u003d001315031613548831\u0026uin\u003d0D011C0939D4EE8027F4\u0026type\u003dfw",
-            "licenseURL": "https://majestic-web.mpsa.com/mjf00-web/rest/LicenseDownload?mediaVersion\u003d001315031613548831\u0026uin\u003d0D011C0939D4EE8027F4"
-        }]
-    }]
-}
-*/
-
-#[derive(Debug, Serialize, Deserialize)]
-struct UpdateResponse {
-    #[serde(rename = "requestResult")]
-    request_result: String,
-    #[serde(rename = "installerURL")]
-    installer_url: Option<String>,
-    vin: String,
-    software: Option<Vec<Software>>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct Software {
-    #[serde(rename = "softwareType")]
-    software_type: String,
-    #[serde(rename = "updateRequestResult")]
-    update_request_result: String,
-    #[serde(rename = "currentSoftwareVersion")]
-    current_software_version: String,
-    update: Vec<SoftwareUpdate>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct SoftwareUpdate {
-    #[serde(rename = "updateId")]
-    update_id: String,
-    #[serde(rename = "updateSize")]
-    update_size: String,
-    #[serde(rename = "updateVersion")]
-    update_version: String,
-    #[serde(rename = "updateDate")]
-    update_date: String,
-    #[serde(rename = "updateURL")]
-    update_url: String,
-    #[serde(rename = "licenseURL")]
-    license_url: String,
-}
-
-#[derive(Debug)]
-struct DownloadedUpdate {
-    license_filename: Option<String>,
-    update_filename: String,
-}
-
-async fn request_available_updates(
-    client: &reqwest::Client,
-    vin: &str,
-    map: Option<&str>,
-) -> Result<UpdateResponse, Error> {
-    // Body for firmware update request
-    // - ovip-int-firmware-version: Firmware update for Bosch NAC (Navigation Audio Connectée)
-    // - rcc-firmware: Firmware update for Continental RCC (Radio Couleur Connectée)
-    // Note: other software types exist for NAC maps: map-afr, map-alg, map-asia, map-eur, map-isr, map-latam, map-latam-chile, map-mea, map-oce, map-russia, map-taiwan
-    let body = if map == None {
-        serde_json::json!({
-            "vin": vin,
-            "softwareTypes": [
-                { "softwareType": "ovip-int-firmware-version" },
-                { "softwareType": "rcc-firmware" }
-            ]
-        })
-    } else {
-        serde_json::json!({
-            "vin": vin,
-            "softwareTypes": [
-                { "softwareType": "ovip-int-firmware-version" },
-                { "softwareType": "rcc-firmware" },
-                { "softwareType": format!("map-{}", map.unwrap()) }
-            ]
-        })
-    };
-
-    let body_as_text = body.to_string();
-
-    let request = client
-        .post(UPDATE_URL)
-        .header("Content-type", "application/json")
-        .body(body_as_text)
-        .build()
-        .with_context(|| format!("Failed to build update request"))?;
-
-    debug!("Sending request {:?} with body {:?}", request, body);
-    let response = client.execute(request).await?;
-
-    debug!("Received response {:?}", response);
-
-    let response_text = response.text().await?;
-    debug!("Received response body {}", response_text);
-
-    let update_response: UpdateResponse = serde_json::from_str(&response_text)
-        .with_context(|| format!("Failed to parse response"))?;
-
-    if update_response.request_result != "OK" {
-        Err(anyhow!(
-            "Failed to retrieve available updates, received an error from server: {}",
-            update_response.request_result
-        ))
-    } else {
-        Ok(update_response)
-    }
-}
-
-// Extract firmware update to specified location
-fn extract_update(update: &DownloadedUpdate, destination_path: &Path) -> Result<(), Error> {
-    println!(
-        "Extracting update to {}",
-        destination_path.to_string_lossy()
-    );
-
-    if update.license_filename != None {
-        debug!("Copying licence file");
-        let licence_destination_path = destination_path.join("license");
-        fs::create_dir(&licence_destination_path).with_context(|| {
-            format!(
-                "Failed to create directory {}",
-                licence_destination_path.to_string_lossy()
-            )
-        })?;
-        let licence_destination =
-            licence_destination_path.join(update.license_filename.as_ref().unwrap());
-        fs::copy(
-            update.license_filename.as_ref().unwrap(),
-            licence_destination,
-        )?;
-    }
-
-    debug!("Extracting update");
-    let mut ar = Archive::new(
-        File::open(&update.update_filename)
-            .with_context(|| format!("Failed to open firmware {}", update.update_filename))?,
-    );
-    ar.unpack(destination_path).with_context(|| {
-        format!(
-            "Failed to extract update {} to {} ",
-            update.update_filename,
-            destination_path.to_string_lossy()
-        )
-    })?;
-    Ok(())
-}
-
-// Available disk space in current directory
-fn cwd_available_space() -> Option<u64> {
-    let cwd_result = current_dir();
-    if cwd_result.is_err() {
-        debug!(
-            "Failed to retrieve information about current working directory: {}",
-            cwd_result.err().unwrap()
-        );
-        return None;
-    }
-    let cwd = cwd_result.ok().unwrap();
-    let mut sys = System::new();
-    let mut cwd_disk: Option<&Disk> = None;
-    sys.refresh_disks_list();
-    sys.refresh_disks();
-    // Lookup disk whose mount point is parent of cwd
-    // In case there are multiple candidates, pick up the "nearest" parent of cwd
-    for disk in sys.disks() {
-        debug!("Disk {:?}", disk);
-        if cwd.starts_with(disk.mount_point())
-            && (cwd_disk == None
-                || disk
-                    .mount_point()
-                    .starts_with(cwd_disk.unwrap().mount_point()))
-        {
-            cwd_disk = Some(disk);
-        }
-    }
-    if cwd_disk == None {
-        debug!(
-            "Failed to retrieve disk information for current working directory: {}",
-            cwd.to_string_lossy()
-        );
-        return None;
-    }
-    debug!(
-        "Current working directory maps to disk {}",
-        cwd_disk.unwrap().name().to_string_lossy()
-    );
-    Some(cwd_disk.unwrap().available_space())
 }
