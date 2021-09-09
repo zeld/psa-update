@@ -1,5 +1,7 @@
+use std::env::current_dir;
 use std::fs;
 use std::fs::File;
+use std::path::Path;
 use std::vec::Vec;
 
 use futures::future::try_join_all;
@@ -8,7 +10,7 @@ use log::debug;
 
 use anyhow::{anyhow, Context, Error, Result};
 
-use clap::{App, Arg, crate_version};
+use clap::{crate_version, App, Arg};
 
 use reqwest::Client;
 
@@ -19,6 +21,8 @@ use dialoguer::{Confirm, Input};
 use indicatif::{HumanBytes, MultiProgress};
 
 use tar::Archive;
+
+use sysinfo::{Disk, DiskExt, System, SystemExt};
 
 mod download;
 
@@ -104,6 +108,13 @@ async fn main() -> Result<(), Error> {
     }
 
     // TODO check available disk space
+    let available_space = cwd_available_space();
+    if available_space != None {
+        println!(
+            "Available disk space: {}",
+            HumanBytes(available_space.unwrap())
+        );
+    }
 
     let multi_progress = MultiProgress::new();
 
@@ -114,10 +125,19 @@ async fn main() -> Result<(), Error> {
 
     let downloaded_updates: Vec<DownloadedUpdate> = try_join_all(downloads).await?;
 
-    let destination_path = prompt("Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32): ")?;
-    if destination_path.is_empty() {
+    let destination = prompt("Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32): ")?;
+    if destination.is_empty() {
         println!("No location, skipping extraction");
     } else {
+        let destination_path = Path::new(&destination);
+        if !destination_path.is_dir() {
+            return Err(anyhow!(
+                "Destination does not exist or is not a directory: {}",
+                destination_path.to_string_lossy()
+            ));
+        }
+        // TODO check destination available space. Warn if not USB root folder, not empty, not FAT32
+
         for update in downloaded_updates {
             extract_update(&update, &destination_path)
                 .with_context(|| format!("Failed to extract update"))?;
@@ -295,20 +315,23 @@ async fn request_available_updates(
 }
 
 // Extract firmware update to specified location
-fn extract_update(update: &DownloadedUpdate, destination_path: &str) -> Result<(), Error> {
-    println!("Extracting update to {}", destination_path);
-    // TODO check destination available space. Warn if not USB root folder, not empty, not FAT32
+fn extract_update(update: &DownloadedUpdate, destination_path: &Path) -> Result<(), Error> {
+    println!(
+        "Extracting update to {}",
+        destination_path.to_string_lossy()
+    );
 
     if update.license_filename != None {
         debug!("Copying licence file");
-        let licence_destination_path = format!("{}/license", destination_path);
-        fs::create_dir(&licence_destination_path)
-            .with_context(|| format!("Failed to create directory {}", licence_destination_path))?;
-        let licence_destination = format!(
-            "{}/{}",
-            licence_destination_path,
-            update.license_filename.as_ref().unwrap()
-        );
+        let licence_destination_path = destination_path.join("license");
+        fs::create_dir(&licence_destination_path).with_context(|| {
+            format!(
+                "Failed to create directory {}",
+                licence_destination_path.to_string_lossy()
+            )
+        })?;
+        let licence_destination =
+            licence_destination_path.join(update.license_filename.as_ref().unwrap());
         fs::copy(
             update.license_filename.as_ref().unwrap(),
             licence_destination,
@@ -323,8 +346,51 @@ fn extract_update(update: &DownloadedUpdate, destination_path: &str) -> Result<(
     ar.unpack(destination_path).with_context(|| {
         format!(
             "Failed to extract update {} to {} ",
-            update.update_filename, destination_path
+            update.update_filename,
+            destination_path.to_string_lossy()
         )
     })?;
     Ok(())
+}
+
+// Available disk space in current directory
+fn cwd_available_space() -> Option<u64> {
+    let cwd_result = current_dir();
+    if cwd_result.is_err() {
+        debug!(
+            "Failed to retrieve information about current working directory: {}",
+            cwd_result.err().unwrap()
+        );
+        return None;
+    }
+    let cwd = cwd_result.ok().unwrap();
+    let mut sys = System::new();
+    let mut cwd_disk: Option<&Disk> = None;
+    sys.refresh_disks_list();
+    sys.refresh_disks();
+    // Lookup disk whose mount point is parent of cwd
+    // In case there are multiple candidates, pick up the "nearest" parent of cwd
+    for disk in sys.disks() {
+        debug!("Disk {:?}", disk);
+        if cwd.starts_with(disk.mount_point())
+            && (cwd_disk == None
+                || disk
+                    .mount_point()
+                    .starts_with(cwd_disk.unwrap().mount_point()))
+        {
+            cwd_disk = Some(disk);
+        }
+    }
+    if cwd_disk == None {
+        debug!(
+            "Failed to retrieve disk information for current working directory: {}",
+            cwd.to_string_lossy()
+        );
+        return None;
+    }
+    debug!(
+        "Current working directory maps to disk {}",
+        cwd_disk.unwrap().name().to_string_lossy()
+    );
+    Some(cwd_disk.unwrap().available_space())
 }
