@@ -1,27 +1,24 @@
 # psa-update
-CLI alternative to PSA (Peugeot / Citroën / Opel) NAC / RCC firmware update, hopefully more robust
+
+CLI alternative to PSA (Peugeot / Citroën / Opel) NAC / RCC firmware update, hopefully more robust.
 
 Features:
 - Download of RCC / NAC firmware updates
-- Download of navigation map updates for NAC
+- Download of GPS navigation map updates (NAC only)
 - Resume of download in case of failure
 - Preparation of USB device for car system update
-- Multiplatform: Window, Linux, MacOS
+- Self-contained executable that can run on multiple platforms: Windows, Linux, MacOS
 - Concurrent download of firmware and map (using a single thread)
-
-Not yet implemented:
-- Concurrent download for a single file
-- Automatic retry on failure
 
 # Usage
 
-Command line can be invoked in a terminal using vehicle VIN as a parameter:
+The command line executable can be invoked in a terminal using vehicle VIN as a parameter:
 ```
 $ psa-update <VIN>
 ```
-This will check for available RCC / NAC updates, and interactively ask for download and extraction of the firmware update to a USB device.
+This will check for available RCC or NAC updates, and interactively ask for download and extraction of the firmware update to a USB device.
 
-To check for updates of both firmware and navigation map (NAC only):
+To check for updates of both firmware and GPS navigation map (NAC only):
 ```
 $ psa-update <VIN> --map eur
 ```
@@ -37,7 +34,7 @@ Binaries are available for Windows (x86-64), Linux (x86-64) and MacOS (x86-64) i
 
 # Building
 
-To build and run from source using stable rust compiler toolchain:
+To build and run from source code using stable rust compiler toolchain:
 ```
 $ git clone https://github.com/zeld/psa-update.git
 $ cargo run
@@ -45,12 +42,14 @@ $ cargo run
 
 # Proxy
 
-Download is possible behind a proxy provided the `https_proxy` environment variable is correctly configured.
+Download is possible behind a proxy provided the `http_proxy` and `https_proxy` environment variables are correctly configured.
 In a Linux or MacOS shell:
 ```
+export http_proxy=https://<host>:<port>
 export https_proxy=https://<host>:<port>
 ```
 In a Windows command line:
 ```
+SET https_proxy=http://<host>:<port>
 SET https_proxy=https://<host>:<port>
 ```
