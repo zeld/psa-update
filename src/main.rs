@@ -51,7 +51,9 @@ async fn main() -> Result<(), Error> {
     let vin = matches.value_of("VIN").expect("VIN is missing");
     let map = matches.value_of("map");
 
-    let client = Client::new();
+    // TODO investigate compression such as gzip for faster download
+    let client = reqwest::Client::builder()
+        .build().with_context(|| format!("Failed to create HTTP client"))?;
 
     let update_response = psa::request_available_updates(&client, vin, map).await?;
 
