@@ -1,6 +1,6 @@
-use std::fs;
-use std::fs::{File, OpenOptions};
-use std::io::Write;
+use tokio::fs;
+use tokio::fs::{File, OpenOptions};
+use tokio::io::AsyncWriteExt;
 
 use log::debug;
 
@@ -37,7 +37,7 @@ pub async fn download_file(
         if !head_response.headers().contains_key(ACCEPT_RANGES) {
             debug!("Server does support range header");
         } else {
-            let file_metadata = fs::metadata(&head_filename);
+            let file_metadata = fs::metadata(&head_filename).await;
             if file_metadata.is_ok() {
                 resume_position = file_metadata.ok().unwrap().len();
                 debug!(
@@ -91,13 +91,13 @@ pub async fn download_file(
 
     let mut file = if resume_position == 0 {
         debug!("Opening {} in create mode", filename);
-        File::create(filename.clone())
+        File::create(filename.clone()).await
             .with_context(|| format!("Failed to create file {}", filename))?
     } else {
         debug!("Opening {} in append mode for resume", filename);
         OpenOptions::new()
             .append(true)
-            .open(filename.clone())
+            .open(filename.clone()).await
             .with_context(|| format!("Failed to open file {} in append mode", filename))?
     };
 
@@ -107,10 +107,10 @@ pub async fn download_file(
         let chunk =
             item.with_context(|| format!("Failed to download file {} from {}", filename, url))?;
         progress_bar.inc(chunk.len() as u64);
-        file.write_all(&chunk)
+        file.write_all(&chunk).await
             .with_context(|| format!("Error writing to file {}", filename))?; // TODO Investigate buffered / async write
     }
-    file.flush()
+    file.flush().await
         .with_context(|| format!("Error flushing file {}", filename))?;
 
     progress_bar.finish();
