@@ -1,12 +1,12 @@
 [package]
 name = "psa-update"
-version = "0.1.0"
+version = "0.0.3"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reqwest = { version = "0.11", features = ["json", "stream"] }
+reqwest = { version = "0.11", features = ["json", "stream", "gzip"] }
 futures = "0.3"
 futures-util = "0.3"
 tokio = { version = "1", features = ["full"] }
