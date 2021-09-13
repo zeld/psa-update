@@ -52,8 +52,9 @@ async fn main() -> Result<(), Error> {
     let map = matches.value_of("map");
 
     // TODO investigate compression such as gzip for faster download
-    let client = reqwest::Client::builder()
-        .build().with_context(|| format!("Failed to create HTTP client"))?;
+    let client = Client::builder()
+        .build()
+        .with_context(|| format!("Failed to create HTTP client"))?;
 
     let update_response = psa::request_available_updates(&client, vin, map).await?;
 

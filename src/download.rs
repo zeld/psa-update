@@ -85,19 +85,21 @@ pub async fn download_file(
     // Need to reset ETA in case of resume, otherwise estimations are biased
     progress_bar.reset_eta();
     progress_bar.set_style(ProgressStyle::default_bar().template(
-        "[{elapsed_precise}] {msg:.cyan} {wide_bar} {bytes:>9}@{bytes_per_sec:<9} ETA={eta:>3}",
-    ).progress_chars("##-"));
-    progress_bar.set_message(format!("{}...", filename));
+        "{percent:>3}% [{bar}] {bytes:<9} {bytes_per_sec:<11} ETA={eta:<3} {wide_msg:.cyan}",
+    ).progress_chars("#>-"));
+    progress_bar.set_message(format!("{}", filename));
 
     let mut file = if resume_position == 0 {
         debug!("Opening {} in create mode", filename);
-        File::create(filename.clone()).await
+        File::create(filename.clone())
+            .await
             .with_context(|| format!("Failed to create file {}", filename))?
     } else {
         debug!("Opening {} in append mode for resume", filename);
         OpenOptions::new()
             .append(true)
-            .open(filename.clone()).await
+            .open(filename.clone())
+            .await
             .with_context(|| format!("Failed to open file {} in append mode", filename))?
     };
 
@@ -107,10 +109,12 @@ pub async fn download_file(
         let chunk =
             item.with_context(|| format!("Failed to download file {} from {}", filename, url))?;
         progress_bar.inc(chunk.len() as u64);
-        file.write_all(&chunk).await
+        file.write_all(&chunk)
+            .await
             .with_context(|| format!("Error writing to file {}", filename))?; // TODO Investigate buffered / async write
     }
-    file.flush().await
+    file.flush()
+        .await
         .with_context(|| format!("Error flushing file {}", filename))?;
 
     progress_bar.finish();
