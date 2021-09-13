@@ -156,6 +156,8 @@ fn parse_filename_from_content_disposition(response: &Response) -> Result<Option
     );
 
     // TODO Could not find a nice way to parse content-disposition header in reqwest
+    // ContentDisposition exists in header crate, but parsing is currently limited and does not
+    // support for filename. See: https://github.com/hyperium/headers/issues/8
     // Workaround: use an ugly regexp
     let re = Regex::new(r"attachment; filename=(\S+)")
         .with_context(|| format!("Failed to compile content-disposition regexp"))?;
