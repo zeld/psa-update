@@ -8,7 +8,9 @@ use log::debug;
 
 use anyhow::{anyhow, Context, Error, Result};
 
-use indicatif::MultiProgress;
+use console::Style;
+
+use indicatif::{HumanBytes, MultiProgress};
 
 use tar::Archive;
 
@@ -91,6 +93,47 @@ pub struct SoftwareUpdate {
 pub struct DownloadedUpdate {
     pub license_filename: Option<String>,
     pub update_filename: String,
+}
+
+pub fn print(software: &Software, update: &SoftwareUpdate) {
+    let cyan = Style::new().cyan();
+    let software_type = if software.software_type.starts_with("map") {
+        "Map "
+    } else {
+        "Firmware"
+    };
+    println!(
+        "Update available - Type: {:<9} Version: {}",
+        &cyan.apply_to(software_type),
+        cyan.apply_to(&update.update_version)
+    );
+
+    let update_size = match update.update_size.parse() {
+        Ok(size) => Some(size),
+        Err(_) => {
+            debug!("Failed to parse update size: {}", update.update_size);
+            None
+        }
+    };
+    let update_size_formatted = update_size
+        .map(|s| HumanBytes(s).to_string())
+        .unwrap_or_else(|| "?".to_string());
+    println!(
+        "                   Size: {:<9} Release date: {}",
+        cyan.apply_to(update_size_formatted),
+        cyan.apply_to(&update.update_date)
+    );
+
+    println!(
+        "                   URL: {}",
+        cyan.apply_to(&update.update_url)
+    );
+    if !update.license_url.is_empty() {
+        println!(
+            "                   License URL: {}",
+            cyan.apply_to(&update.license_url)
+        );
+    }
 }
 
 pub async fn request_available_updates(

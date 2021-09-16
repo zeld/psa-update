@@ -87,7 +87,7 @@ pub async fn download_file(
     progress_bar.set_style(ProgressStyle::default_bar().template(
         "{percent:>3}% [{bar}] {bytes:<9} {bytes_per_sec:<11} ETA={eta:<3} {wide_msg:.cyan}",
     ).progress_chars("#>-"));
-    progress_bar.set_message(format!("{}", filename));
+    progress_bar.set_message(filename.to_string());
 
     let file = if resume_position == 0 {
         debug!("Opening {} in create mode", filename);
@@ -112,11 +112,13 @@ pub async fn download_file(
         let chunk =
             item.with_context(|| format!("Failed to download file {} from {}", filename, url))?;
         progress_bar.inc(chunk.len() as u64);
-        file_writer.write_all(&chunk)
+        file_writer
+            .write_all(&chunk)
             .await
             .with_context(|| format!("Error writing to file {}", filename))?;
     }
-    file_writer.flush()
+    file_writer
+        .flush()
         .await
         .with_context(|| format!("Error flushing file {}", filename))?;
 

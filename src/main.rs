@@ -9,9 +9,8 @@ use clap::{crate_version, App, Arg};
 
 use reqwest::Client;
 
-use console::Style;
 use dialoguer::{Confirm, Input};
-use indicatif::{HumanBytes, MultiProgress};
+use indicatif::MultiProgress;
 
 mod download;
 mod psa;
@@ -69,26 +68,7 @@ async fn main() -> Result<(), Error> {
         for update in &software.update {
             // A empty update can be sent by the server when there are no available update
             if !update.update_id.is_empty() {
-                let cyan = Style::new().cyan();
-                println!(
-                    "Update available: {}",
-                    cyan.apply_to(&update.update_version)
-                );
-                let software_type = if software.software_type.starts_with("map") {
-                    "Map "
-                } else {
-                    "Firmware"
-                };
-                println!("\tType: {}", cyan.apply_to(&software_type));
-                println!("\tRelease date: {}", cyan.apply_to(&update.update_date));
-                let update_size: u64 = update.update_size.parse().with_context(|| {
-                    format!("Failed to parse update size: {}", update.update_size)
-                })?;
-                println!("\tSize: {}", cyan.apply_to(HumanBytes(update_size)));
-                println!("\tURL: {}", cyan.apply_to(&update.update_url));
-                if !update.license_url.is_empty() {
-                    println!("\tLicense URL: {}", cyan.apply_to(&update.license_url));
-                }
+                psa::print(&software, update);
                 if confirm("Download update?")? {
                     selected_updates.push(update.clone());
                 }
