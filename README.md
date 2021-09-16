@@ -3,12 +3,10 @@
 CLI alternative to PSA (Peugeot / Citroën / Opel) NAC / RCC firmware update, hopefully more robust.
 
 Features:
-- Download of RCC / NAC firmware updates
-- Download of GPS navigation map updates (NAC only)
+- Download of RCC / NAC firmware updates, and GPS navigation map updates (NAC only)
 - Resume of download in case of failure
-- Preparation of USB device for car system update
+- Preparation of USB storage device for car system update
 - Self-contained executable that can run on multiple platforms: Windows, Linux, MacOS
-- Concurrent download of firmware and map (using a single thread)
 
 # Usage
 
@@ -34,7 +32,7 @@ Binaries are available for Windows (x86-64), Linux (x86-64) and MacOS (x86-64) i
 
 # Building
 
-To build and run from source code using stable rust compiler toolchain:
+To build and run from source code using stable rust compiler toolchain (version 1.54+):
 ```
 $ git clone https://github.com/zeld/psa-update.git
 $ cargo run
