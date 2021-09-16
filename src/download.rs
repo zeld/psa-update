@@ -1,6 +1,6 @@
 use tokio::fs;
 use tokio::fs::{File, OpenOptions};
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncWriteExt, BufWriter};
 
 use log::debug;
 
@@ -89,7 +89,7 @@ pub async fn download_file(
     ).progress_chars("#>-"));
     progress_bar.set_message(format!("{}", filename));
 
-    let mut file = if resume_position == 0 {
+    let file = if resume_position == 0 {
         debug!("Opening {} in create mode", filename);
         File::create(filename.clone())
             .await
@@ -103,17 +103,20 @@ pub async fn download_file(
             .with_context(|| format!("Failed to open file {} in append mode", filename))?
     };
 
+    // TODO Is there an interest in buffering response stream we read from?
     let mut stream = response.bytes_stream();
+
+    let mut file_writer = BufWriter::new(file);
 
     while let Some(item) = stream.next().await {
         let chunk =
             item.with_context(|| format!("Failed to download file {} from {}", filename, url))?;
         progress_bar.inc(chunk.len() as u64);
-        file.write_all(&chunk)
+        file_writer.write_all(&chunk)
             .await
-            .with_context(|| format!("Error writing to file {}", filename))?; // TODO Investigate buffered / async write
+            .with_context(|| format!("Error writing to file {}", filename))?;
     }
-    file.flush()
+    file_writer.flush()
         .await
         .with_context(|| format!("Error flushing file {}", filename))?;
 
