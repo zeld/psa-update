@@ -51,3 +51,8 @@ In a Windows command line:
 SET https_proxy=http://<host>:<port>
 SET https_proxy=https://<host>:<port>
 ```
+
+# Credit
+
+- Inspired from the Linux script in this [forum post](https://www.forum-peugeot.com/Forum/threads/app-peugeot-update-logiciel-alternatif-multi-os-v1-5-26-08-2021.119707/)
+- For the list of navigation maps, and associated content, this [forum post](https://forum-auto.caradisiac.com/topic/129967-le-nac-du-3008-ii-et-de-tous-les-v%C3%A9hicules-psa-lisez-en-premier-la-page-n%C2%B012/)
