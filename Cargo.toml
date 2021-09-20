@@ -28,3 +28,5 @@ indicatif = "0.17.0-beta.1"
 regex = "1"
 
 tar = "0.4.20"
+
+sysinfo = "0.20"

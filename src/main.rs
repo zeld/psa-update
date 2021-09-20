@@ -12,6 +12,8 @@ use reqwest::Client;
 use dialoguer::{Confirm, Input};
 use indicatif::MultiProgress;
 
+use sysinfo::{System, SystemExt};
+
 mod download;
 mod psa;
 
@@ -89,6 +91,19 @@ async fn main() -> Result<(), Error> {
 
     let downloaded_updates: Vec<psa::DownloadedUpdate> = try_join_all(downloads).await?;
 
+    if !confirm(
+        "To proceed to extraction of update(s), please insert an empty USB disk formatted as FAT32. Continue?",
+    )? {
+        return Ok(());
+    }
+
+    // Listing available disks for extraction
+    let mut sys: System = System::new();
+    sys.refresh_disks_list();
+    sys.refresh_disks();
+    // TODO check destination available space.
+    psa::print_disks(&sys);
+
     let destination = prompt("Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32): ")?;
     if destination.is_empty() {
         println!("No location, skipping extraction");
@@ -100,7 +115,6 @@ async fn main() -> Result<(), Error> {
                 destination_path.to_string_lossy()
             ));
         }
-        // TODO check destination available space. Warn if not USB root folder, not empty, not FAT32
 
         for update in downloaded_updates {
             psa::extract_update(&update, destination_path)
