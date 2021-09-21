@@ -44,13 +44,13 @@ $ cargo run
 Download is possible behind a proxy provided the `http_proxy` and `https_proxy` environment variables are correctly configured.
 In a Linux or MacOS shell:
 ```
-export http_proxy=https://<host>:<port>
-export https_proxy=https://<host>:<port>
+export http_proxy=<host>:<port>
+export https_proxy=<host>:<port>
 ```
-In a Windows command line:
+In a Windows CMD prompt:
 ```
-SET https_proxy=http://<host>:<port>
-SET https_proxy=https://<host>:<port>
+SET http_proxy=<host>:<port>
+SET https_proxy=<host>:<port>
 ```
 
 # Credits
