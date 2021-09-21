@@ -19,7 +19,8 @@ use tar::Archive;
 
 use crate::download;
 
-const UPDATE_URL: &str = "https://api.groupe-psa.com/applications/majesticf/v1/getAvailableUpdate?client_id=1eeecd7f-6c2b-486a-b59c-8e08fca81f54";
+// URL to query for firmware/map updates. The client_id below was extracted from the official Peugeot Update software
+const UPDATE_URL: &str = "https://api.groupe-psa.com/applications/majesticf/v1/getAvailableUpdate?client_id=20a4cf7c-f5fb-41d5-9175-a6e23b9880e5";
 
 /*
 Sample response:
@@ -144,10 +145,11 @@ pub async fn request_available_updates(
     vin: &str,
     map: Option<&str>,
 ) -> Result<UpdateResponse, Error> {
-    // Body for firmware update request
+    // Body for firmware update request. Available software types are
     // - ovip-int-firmware-version: Firmware update for Bosch NAC (Navigation Audio Connectée)
     // - rcc-firmware: Firmware update for Continental RCC (Radio Couleur Connectée)
-    // Note: other software types exist for NAC maps: map-afr, map-alg, map-asia, map-eur, map-isr, map-latam, map-latam-chile, map-mea, map-oce, map-russia, map-taiwan
+    // - for NAC maps: map-afr, map-alg, map-asia, map-eur, map-isr, map-latam, map-latam-chile, map-mea, map-oce, map-russia, map-taiwan
+    // Note: another software type seems to exist (aio-firmware) for AOI (All in one) devices - outside Europe
     let body = if map == None {
         serde_json::json!({
             "vin": vin,
