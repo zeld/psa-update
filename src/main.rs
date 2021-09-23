@@ -1,18 +1,18 @@
 use std::path::Path;
 use std::vec::Vec;
 
-use futures::future::try_join_all;
-
 use anyhow::{anyhow, Context, Error, Result};
 
 use clap::{crate_version, App, Arg};
 
-use reqwest::Client;
+use reqwest::blocking::Client;
 
 use dialoguer::{Confirm, Input};
 use indicatif::MultiProgress;
 
 use sysinfo::{System, SystemExt};
+
+use rayon::prelude::*;
 
 mod download;
 mod psa;
@@ -20,8 +20,7 @@ mod psa;
 //type Error = Box<dyn std::error::Error>;
 //type Error = anyhow::Error; <- currently in use
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
+fn main() -> Result<(), Error> {
     env_logger::init();
 
     let matches = App::new("PSA firmware update.")
@@ -57,7 +56,7 @@ async fn main() -> Result<(), Error> {
         .build()
         .with_context(|| format!("Failed to create HTTP client"))?;
 
-    let update_response = psa::request_available_updates(&client, vin, map).await?;
+    let update_response = psa::request_available_updates(&client, vin, map)?;
 
     if update_response.software.is_none() {
         println!("No update found");
@@ -85,11 +84,18 @@ async fn main() -> Result<(), Error> {
     let multi_progress = MultiProgress::new();
 
     // Download concurrently
-    let downloads = selected_updates
-        .iter()
-        .map(|update| psa::download_update(&client, update, &multi_progress));
+    let downloaded_updates: Result<Vec<psa::DownloadedUpdate>, _> = selected_updates
+        .par_iter()
+        .map(|update| {
+            psa::download_update(&client, update, &multi_progress)
+                .with_context(|| format!("Failed to download update"))
+        })
+        .collect();
 
-    let downloaded_updates: Vec<psa::DownloadedUpdate> = try_join_all(downloads).await?;
+    let downloaded_updates = match downloaded_updates {
+        Ok(update) => update,
+        Err(error) => return Err(error),
+    };
 
     if !confirm(
         "To proceed to extraction of update(s), please insert an empty USB disk formatted as FAT32. Continue?",

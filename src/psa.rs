@@ -3,6 +3,8 @@ use std::fs::File;
 use std::path::Path;
 use std::str;
 
+use reqwest::blocking::Client;
+
 use serde::{Deserialize, Serialize};
 
 use log::debug;
@@ -19,8 +21,7 @@ use tar::Archive;
 
 use crate::download;
 
-// URL to query for firmware/map updates. The client_id below was extracted from the official Peugeot Update software
-const UPDATE_URL: &str = "https://api.groupe-psa.com/applications/majesticf/v1/getAvailableUpdate?client_id=20a4cf7c-f5fb-41d5-9175-a6e23b9880e5";
+const UPDATE_URL: &str = "https://api.groupe-psa.com/applications/majesticf/v1/getAvailableUpdate?client_id=1eeecd7f-6c2b-486a-b59c-8e08fca81f54";
 
 /*
 Sample response:
@@ -140,16 +141,15 @@ pub fn print(software: &Software, update: &SoftwareUpdate) {
     }
 }
 
-pub async fn request_available_updates(
-    client: &reqwest::Client,
+pub fn request_available_updates(
+    client: &Client,
     vin: &str,
     map: Option<&str>,
 ) -> Result<UpdateResponse, Error> {
-    // Body for firmware update request. Available software types are
+    // Body for firmware update request
     // - ovip-int-firmware-version: Firmware update for Bosch NAC (Navigation Audio Connectée)
     // - rcc-firmware: Firmware update for Continental RCC (Radio Couleur Connectée)
-    // - for NAC maps: map-afr, map-alg, map-asia, map-eur, map-isr, map-latam, map-latam-chile, map-mea, map-oce, map-russia, map-taiwan
-    // Note: another software type seems to exist (aio-firmware) for AOI (All in one) devices - outside Europe
+    // Note: other software types exist for NAC maps: map-afr, map-alg, map-asia, map-eur, map-isr, map-latam, map-latam-chile, map-mea, map-oce, map-russia, map-taiwan
     let body = if map == None {
         serde_json::json!({
             "vin": vin,
@@ -179,11 +179,11 @@ pub async fn request_available_updates(
         .with_context(|| format!("Failed to build update request"))?;
 
     debug!("Sending request {:?} with body {:?}", request, body);
-    let response = client.execute(request).await?;
+    let response = client.execute(request)?;
 
     debug!("Received response {:?}", response);
 
-    let response_text = response.text().await?;
+    let response_text = response.text()?;
     debug!("Received response body {}", response_text);
 
     let update_response: UpdateResponse = serde_json::from_str(&response_text)
@@ -199,8 +199,8 @@ pub async fn request_available_updates(
     }
 }
 
-pub async fn download_update(
-    client: &reqwest::Client,
+pub fn download_update(
+    client: &Client,
     software_update: &SoftwareUpdate,
     multi_progress: &MultiProgress,
 ) -> Result<DownloadedUpdate, Error> {
@@ -208,13 +208,15 @@ pub async fn download_update(
     let license_filename = if software_update.license_url.is_empty() {
         None
     } else {
-        Some(
-            download::download_file(client, &software_update.license_url, multi_progress, false)
-                .await?,
-        )
+        Some(download::download_file(
+            client,
+            &software_update.license_url,
+            multi_progress,
+            false,
+        )?)
     };
     let update_filename =
-        download::download_file(client, &software_update.update_url, multi_progress, true).await?;
+        download::download_file(client, &software_update.update_url, multi_progress, true)?;
     Ok(DownloadedUpdate {
         license_filename,
         update_filename,

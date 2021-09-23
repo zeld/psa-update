@@ -1,6 +1,6 @@
-use tokio::fs;
-use tokio::fs::{File, OpenOptions};
-use tokio::io::{AsyncWriteExt, BufWriter};
+use std::fs;
+use std::fs::{File, OpenOptions};
+use std::io::{BufWriter, Read, Write};
 
 use log::debug;
 
@@ -8,15 +8,13 @@ use anyhow::{anyhow, Context, Error, Result};
 
 use regex::{Match, Regex};
 
+use reqwest::blocking::{Client, Response};
 use reqwest::header::{ACCEPT_RANGES, RANGE};
-use reqwest::{Client, Response};
-
-use futures_util::StreamExt;
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 // Could not find a suitable crate to download a file that supports for resume
-pub async fn download_file(
+pub fn download_file(
     client: &Client,
     url: &str,
     multi_progress: &MultiProgress,
@@ -28,7 +26,7 @@ pub async fn download_file(
     if try_to_resume {
         // Issuing a HEAD request to retrieve download name and size
         debug!("Sending request HEAD {}", url);
-        let head_response = client.get(url).send().await?;
+        let head_response = client.get(url).send()?;
         debug!("Received response {:?}", head_response);
 
         // Parse target filename from response
@@ -37,7 +35,7 @@ pub async fn download_file(
         if !head_response.headers().contains_key(ACCEPT_RANGES) {
             debug!("Server does support range header");
         } else {
-            let file_metadata = fs::metadata(&head_filename).await;
+            let file_metadata = fs::metadata(&head_filename);
             if file_metadata.is_ok() {
                 resume_position = file_metadata.ok().unwrap().len();
                 debug!(
@@ -67,7 +65,7 @@ pub async fn download_file(
     }
 
     debug!("Sending request GET {}", url);
-    let response = request.send().await?;
+    let mut response = request.send()?;
     debug!("Received response {:?}", response);
 
     // Parse target filename from response
@@ -92,34 +90,35 @@ pub async fn download_file(
     let file = if resume_position == 0 {
         debug!("Opening {} in create mode", filename);
         File::create(filename.clone())
-            .await
             .with_context(|| format!("Failed to create file {}", filename))?
     } else {
         debug!("Opening {} in append mode for resume", filename);
         OpenOptions::new()
             .append(true)
             .open(filename.clone())
-            .await
             .with_context(|| format!("Failed to open file {} in append mode", filename))?
     };
 
-    // TODO Is there an interest in buffering response stream we read from?
-    let mut stream = response.bytes_stream();
-
+    let mut buffer = [0u8; 4096];
     let mut file_writer = BufWriter::new(file);
 
-    while let Some(item) = stream.next().await {
-        let chunk =
-            item.with_context(|| format!("Failed to download file {} from {}", filename, url))?;
-        progress_bar.inc(chunk.len() as u64);
+    loop {
+        let count = response
+            .read(&mut buffer)
+            .with_context(|| format!("Error reading from response body"))?;
+        if count == 0 {
+            // End of file.
+            //TODO we may want to check we actually got all expected bytes, or maybe
+            // reqwest ensures it?
+            break;
+        }
+        progress_bar.inc(count as u64);
         file_writer
-            .write_all(&chunk)
-            .await
+            .write_all(&buffer[..count])
             .with_context(|| format!("Error writing to file {}", filename))?;
     }
     file_writer
         .flush()
-        .await
         .with_context(|| format!("Error flushing file {}", filename))?;
 
     progress_bar.finish();
