@@ -6,7 +6,7 @@ Features:
 - Download of RCC / NAC firmware updates, and GPS navigation map updates (NAC only)
 - Resume of download in case of failure
 - Preparation of USB storage device for car system update
-- Self-contained executable that can run on multiple platforms: Windows, Linux, MacOS
+- Lightweight self-contained executable that can run on multiple platforms: Windows, Linux, MacOS
 
 # Usage
 
@@ -55,5 +55,6 @@ SET https_proxy=<host>:<port>
 
 # Credits
 
-- Inspired from the Linux script in this [forum post](https://www.forum-peugeot.com/Forum/threads/app-peugeot-update-logiciel-alternatif-multi-os-v1-5-26-08-2021.119707/)
-- For the list of navigation maps, and associated content, this [forum post](https://forum-auto.caradisiac.com/topic/129967-le-nac-du-3008-ii-et-de-tous-les-v%C3%A9hicules-psa-lisez-en-premier-la-page-n%C2%B012/)
+- Inspired from the Linux script in this french [forum post](https://www.forum-peugeot.com/Forum/threads/app-peugeot-update-logiciel-alternatif-multi-os-v1-5-26-08-2021.119707/)
+- For the list of navigation maps, and associated content, this french [forum post](https://forum-auto.caradisiac.com/topic/129967-le-nac-du-3008-ii-et-de-tous-les-v%C3%A9hicules-psa-lisez-en-premier-la-page-n%C2%B012/)
+- Miror of firmware and map updates on [this site](https://sites.google.com/view/nac-rcc/)
