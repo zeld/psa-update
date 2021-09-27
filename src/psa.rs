@@ -146,16 +146,17 @@ pub async fn request_available_updates(
     map: Option<&str>,
 ) -> Result<UpdateResponse, Error> {
     // Body for firmware update request. Available software types are
-    // - ovip-int-firmware-version: Firmware update for Bosch NAC (Navigation Audio Connectée)
-    // - rcc-firmware: Firmware update for Continental RCC (Radio Couleur Connectée)
+    // - rcc-firmware: Firmware update for Bosch RCC (Radio Couleur Connectée)
+    // - ovip-int-firmware-version: Firmware update for Continental NAC (Navigation Audio Connectée)
+    // - aio-firmware: Firmware update for Continental NAC AIO (All In One) - Used outside Europe (South America)
     // - for NAC maps: map-afr, map-alg, map-asia, map-eur, map-isr, map-latam, map-latam-chile, map-mea, map-oce, map-russia, map-taiwan
-    // Note: another software type seems to exist (aio-firmware) for AOI (All in one) devices - outside Europe
     let body = if map == None {
         serde_json::json!({
             "vin": vin,
             "softwareTypes": [
                 { "softwareType": "ovip-int-firmware-version" },
-                { "softwareType": "rcc-firmware" }
+                { "softwareType": "rcc-firmware" },
+                { "softwareType": "aio-firmware" },
             ]
         })
     } else {
