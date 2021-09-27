@@ -222,7 +222,7 @@ pub async fn download_update(
     })
 }
 
-// List disks
+// Print disks list as a table
 pub fn print_disks(sys: &System) {
     println!(
         "{0: ^20} | {1: ^30} | {2: ^6} | {3: ^9} | {4: ^10} | {5: ^5} ",
@@ -232,9 +232,9 @@ pub fn print_disks(sys: &System) {
     let green = Style::new().green();
     for disk in sys.disks() {
         let disk_removable = if disk.is_removable() {
-            green.apply_to("true")
+            green.apply_to("Yes")
         } else {
-            red.apply_to("false")
+            red.apply_to("No")
         };
         let file_system_str = str::from_utf8(disk.file_system()).unwrap();
         let file_system = if file_system_str.eq_ignore_ascii_case("FAT32") {
@@ -245,12 +245,12 @@ pub fn print_disks(sys: &System) {
 
         let empty = if let Ok(files) = fs::read_dir(disk.mount_point()) {
             if files.count() == 0 {
-                green.apply_to("true")
+                green.apply_to("Yes")
             } else {
-                red.apply_to("false")
+                red.apply_to("No")
             }
         } else {
-            red.apply_to("?")
+            red.apply_to("N/A")
         };
 
         println!(
