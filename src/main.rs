@@ -104,7 +104,7 @@ async fn main() -> Result<(), Error> {
     // TODO check destination available space.
     psa::print_disks(&sys);
 
-    let destination = prompt("Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32): ")?;
+    let destination = prompt("Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32)")?;
     if destination.is_empty() {
         println!("No location, skipping extraction");
     } else {
@@ -130,5 +130,8 @@ fn confirm(message: &str) -> Result<bool, Error> {
 }
 
 fn prompt(message: &str) -> Result<String, Error> {
-    Ok(Input::new().with_prompt(message).interact_text()?)
+    //FIXME interact_text() should be used instead but there is currently a bug
+    // on Windows that triggers an error when the user presses the Shift/AltGr keys
+    // https://github.com/mitsuhiko/dialoguer/issues/128
+    Ok(Input::new().with_prompt(message).interact()?)
 }
