@@ -1,6 +1,6 @@
 # psa-update
 
-CLI alternative to PSA (Peugeot / Citroën / Opel) NAC / RCC firmware update, hopefully more robust.
+CLI alternative to PSA (Peugeot / Citroën / DS / Opel) infotainment system update (NAC / RCC firmware and navigation maps), hopefully more robust.
 
 Features:
 - Download of RCC / NAC firmware updates, and GPS navigation map updates (NAC only)
