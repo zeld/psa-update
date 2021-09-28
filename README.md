@@ -8,7 +8,7 @@ Features:
 - Preparation of USB storage device for car system update
 - Lightweight self-contained executable that can run on multiple platforms: Windows, Linux, MacOS
 
-# Usage
+## Usage
 
 The command line executable can be invoked in a terminal using vehicle VIN as a parameter:
 ```
@@ -26,12 +26,12 @@ The list of available maps identifiers can be obtained using the help:
 $ psa-update --help
 ```
 
-# Setup
+## Setup
 
-Binaries are available for Windows (x86-64), Linux (x86-64) and MacOS (x86-64) in the release section: simply download and extract the `psa-update`executable.
+Binaries are available for Windows (x86-64), Linux (x86-64) and MacOS (x86-64) in the release section: simply download and extract the `psa-update` executable.
 For other platforms the project can be built from source code (see below).
 
-# Building
+## Building
 
 To build and run from source code using stable rust compiler toolchain (version 1.54+):
 ```
@@ -39,7 +39,7 @@ $ git clone https://github.com/zeld/psa-update.git
 $ cargo run
 ```
 
-# Proxy
+## Proxy
 
 Download is possible behind a proxy provided the `http_proxy` and `https_proxy` environment variables are correctly configured.
 In a Linux or MacOS shell:
@@ -53,7 +53,7 @@ SET http_proxy=<host>:<port>
 SET https_proxy=<host>:<port>
 ```
 
-# Credits
+## Credits
 
 - Inspired from the Linux script in this french [forum post](https://www.forum-peugeot.com/Forum/threads/app-peugeot-update-logiciel-alternatif-multi-os-v1-5-26-08-2021.119707/)
 - For the list of navigation maps, and associated content, this french [forum post](https://forum-auto.caradisiac.com/topic/129967-le-nac-du-3008-ii-et-de-tous-les-v%C3%A9hicules-psa-lisez-en-premier-la-page-n%C2%B012/)
