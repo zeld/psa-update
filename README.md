@@ -28,7 +28,7 @@ $ psa-update --help
 
 ## Setup
 
-Binaries are available for Windows (x86-64), Linux (x86-64) and MacOS (x86-64) in the release section: simply download and extract the `psa-update` executable.
+Binaries are available for Windows (x86-64), Linux (x86-64) and MacOS (x86-64) in the [releases](https://github.com/zeld/psa-update/releases) section: simply download and extract the `psa-update` executable.
 For other platforms the project can be built from source code (see below).
 
 ## Building
