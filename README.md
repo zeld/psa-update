@@ -26,6 +26,8 @@ The list of available maps identifiers can be obtained using the help:
 $ psa-update --help
 ```
 
+Once copied to the USB drive, the update can be applied on the infotainement system following PSA instructions. For example for Peugeot: [RCC instructions](https://media-ct-ndp.peugeot.com/file/38/2/map-software-rcc-en.632382.pdf), [NAC instructions](https://media-ct-ndp.peugeot.com/file/38/0/map-software-nac-en.632380.pdf).
+
 ## Setup
 
 Binaries are available for Windows (x86-64), Linux (x86-64) and MacOS (x86-64) in the [releases](https://github.com/zeld/psa-update/releases) section: simply download and extract the `psa-update` executable.
