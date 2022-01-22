@@ -17,9 +17,6 @@ use sysinfo::{System, SystemExt};
 mod download;
 mod psa;
 
-//type Error = Box<dyn std::error::Error>;
-//type Error = anyhow::Error; <- currently in use
-
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     env_logger::init();
@@ -27,11 +24,11 @@ async fn main() -> Result<(), Error> {
     let matches = App::new("PSA firmware update.")
         .version(crate_version!())
         .about("CLI alternative to Peugeot/Citroën/Open update for NAC/RCC firmware updates, hopefully more robust. Supports for resume of downloads.")
-        .arg(Arg::with_name("VIN")
+        .arg(Arg::new("VIN")
             .help("Sets the VIN to check for update")
             .required(true)
             .index(1))
-        .arg(Arg::with_name("map")
+        .arg(Arg::new("map")
             .help("Sets the map to check for update. Supported maps:\n\
                 - afr: Africa\n\
                 - alg: Algeria\n\
