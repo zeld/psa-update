@@ -20,8 +20,8 @@ env_logger = "0.9"
 anyhow = "1.0"
 
 console = "0.15"
-dialoguer = "0.9"
-indicatif = "0.17.0-rc.2"
+dialoguer = "0.10"
+indicatif = "0.17.0-rc.9"
 
 regex = "1"
 

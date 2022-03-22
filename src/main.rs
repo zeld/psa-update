@@ -5,7 +5,7 @@ use futures::future::try_join_all;
 
 use anyhow::{anyhow, Context, Error, Result};
 
-use clap::{crate_version, App, Arg};
+use clap::{crate_version, Command, Arg};
 
 use reqwest::Client;
 
@@ -21,7 +21,7 @@ mod psa;
 async fn main() -> Result<(), Error> {
     env_logger::init();
 
-    let matches = App::new("PSA firmware update.")
+    let matches = Command::new("PSA firmware update.")
         .version(crate_version!())
         .about("CLI alternative to Peugeot/Citroën/Open update for NAC/RCC firmware updates, hopefully more robust. Supports for resume of downloads.")
         .arg(Arg::new("VIN")
