@@ -165,6 +165,7 @@ pub async fn request_available_updates(
             "softwareTypes": [
                 { "softwareType": "ovip-int-firmware-version" },
                 { "softwareType": "rcc-firmware" },
+                { "softwareType": "aio-firmware" },
                 { "softwareType": format!("map-{}", map.unwrap()) }
             ]
         })
