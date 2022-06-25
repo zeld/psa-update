@@ -15,6 +15,34 @@ use futures_util::StreamExt;
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
+pub struct FileDownloadInfo {
+    filename: String,
+    filesize: u64,
+    supports_resume: bool,
+}
+
+// Issue a head request to retrieve info on file to download
+pub async fn request_file_download_info(
+    client: &Client,
+    url: &str,
+) -> Result<FileDownloadInfo, Error> {
+    // Issuing a HEAD request to retrieve download name and size
+    debug!("Sending request HEAD {}", url);
+    let head_response = client.get(url).send().await?;
+    debug!("Received response {:?}", head_response);
+
+    // Parse target filename from response
+    let filename = String::from(parse_filename(&head_response)?);
+    let filesize = head_response.content_length().unwrap_or(0);
+    let supports_resume = head_response.headers().contains_key(ACCEPT_RANGES);
+
+    Ok(FileDownloadInfo {
+        filename,
+        filesize,
+        supports_resume,
+    })
+}
+
 // Could not find a suitable crate to download a file that supports for resume
 pub async fn download_file(
     client: &Client,
@@ -27,31 +55,26 @@ pub async fn download_file(
 
     if try_to_resume {
         // Issuing a HEAD request to retrieve download name and size
-        debug!("Sending request HEAD {}", url);
-        let head_response = client.get(url).send().await?;
-        debug!("Received response {:?}", head_response);
+        let file_info = request_file_download_info(client, url).await?;
 
-        // Parse target filename from response
-        let head_filename = String::from(parse_filename(&head_response)?);
-
-        if !head_response.headers().contains_key(ACCEPT_RANGES) {
+        if !file_info.supports_resume {
             debug!("Server does support range header");
         } else {
-            let file_metadata = fs::metadata(&head_filename).await;
+            let file_metadata = fs::metadata(&file_info.filename).await;
             if file_metadata.is_ok() {
                 resume_position = file_metadata.ok().unwrap().len();
                 debug!(
                     "File {} exists with size: {}",
-                    head_filename, resume_position
+                    &file_info.filename, resume_position
                 );
 
-                head_content_length = head_response.content_length().unwrap_or(0);
+                head_content_length = file_info.filesize;
                 if head_content_length == resume_position {
                     println!(
                         "Skipping download of file {}, already completed",
-                        head_filename
+                        file_info.filename
                     );
-                    return Ok(head_filename);
+                    return Ok(file_info.filename);
                 }
             }
         }
