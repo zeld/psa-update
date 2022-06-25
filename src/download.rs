@@ -16,9 +16,9 @@ use futures_util::StreamExt;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 pub struct FileDownloadInfo {
-    filename: String,
-    filesize: u64,
-    supports_resume: bool,
+    pub filename: String,
+    pub filesize: u64,
+    pub supports_resume: bool,
 }
 
 // Issue a head request to retrieve info on file to download
@@ -164,8 +164,7 @@ fn parse_filename(response: &Response) -> Result<&str, Error> {
 
     // Deduce filename from last path segment of url
     debug!("Parsing filename from url: {}", response.url());
-    let filename_from_url: Option<&str> =
-        response.url().path_segments().map(|s| s.last()).flatten();
+    let filename_from_url: Option<&str> = response.url().path_segments().and_then(|s| s.last());
     match filename_from_url {
         Some(f) => Ok(f),
         None => Err(anyhow!(
@@ -199,10 +198,7 @@ fn parse_filename_from_content_disposition(response: &Response) -> Result<Option
     let re = Regex::new(r"attachment; filename=(\S+)")
         .with_context(|| format!("Failed to compile content-disposition regexp"))?;
 
-    let re_match: Option<Match> = re
-        .captures(content_disposition_str)
-        .map(|c| c.get(1))
-        .flatten();
+    let re_match: Option<Match> = re.captures(content_disposition_str).and_then(|c| c.get(1));
 
     let filename: Option<&str> = re_match.map(|m| m.as_str());
 

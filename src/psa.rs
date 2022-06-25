@@ -11,7 +11,7 @@ use anyhow::{anyhow, Context, Error, Result};
 
 use console::Style;
 
-use indicatif::{HumanBytes, MultiProgress};
+use indicatif::{DecimalBytes, MultiProgress};
 
 use sysinfo::{DiskExt, System, SystemExt};
 
@@ -120,7 +120,7 @@ pub fn print(software: &Software, update: &SoftwareUpdate) {
         }
     };
     let update_size_formatted = update_size
-        .map(|s| HumanBytes(s).to_string())
+        .map(|s| DecimalBytes(s).to_string())
         .unwrap_or_else(|| "?".to_string());
     println!(
         "                   Size: {:<9} Release date: {}",
@@ -260,7 +260,7 @@ pub fn print_disks(sys: &System) {
             disk.mount_point().to_string_lossy(),
             file_system,
             disk_removable,
-            HumanBytes(disk.available_space()).to_string(),
+            DecimalBytes(disk.available_space()).to_string(),
             empty
         );
     }
