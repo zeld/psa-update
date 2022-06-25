@@ -7,13 +7,16 @@ use anyhow::{anyhow, Context, Error, Result};
 
 use clap::{crate_version, Arg, Command};
 
+use log::debug;
+
 use reqwest::Client;
 
 use dialoguer::{Confirm, Input};
-use indicatif::MultiProgress;
+use indicatif::{DecimalBytes, MultiProgress};
 
 use sysinfo::{System, SystemExt};
 
+mod disk;
 mod download;
 mod psa;
 
@@ -78,6 +81,7 @@ async fn main() -> Result<(), Error> {
     }
 
     let mut selected_updates: Vec<psa::SoftwareUpdate> = Vec::new();
+    let mut total_update_size = 0_u64;
 
     for software in update_response.software.unwrap() {
         for update in &software.update {
@@ -86,6 +90,14 @@ async fn main() -> Result<(), Error> {
                 psa::print(&software, update);
                 if !interactive || confirm("Download update?")? {
                     selected_updates.push(update.clone());
+                    let update_size = match update.update_size.parse() {
+                        Ok(size) => size,
+                        Err(_) => {
+                            debug!("Failed to parse update size: {}", update.update_size);
+                            0
+                        }
+                    };
+                    total_update_size = total_update_size + update_size;
                 }
             }
         }
@@ -94,6 +106,15 @@ async fn main() -> Result<(), Error> {
     if selected_updates.is_empty() {
         return Ok(());
     }
+
+    // Check available disk size
+    let mut sys: System = System::new();
+    sys.refresh_disks_list();
+    sys.refresh_disks();
+    let disk_space = disk::get_current_dir_available_space(&sys);
+    disk_space.map(|s| if s < total_update_size {
+        println!("Warning, not enough space on disk to proceed with download. Available disk space in current directory: {}", DecimalBytes(s))
+    });
 
     let multi_progress = MultiProgress::new();
 
@@ -116,11 +137,10 @@ async fn main() -> Result<(), Error> {
     }
 
     // Listing available disks for extraction
-    let mut sys: System = System::new();
     sys.refresh_disks_list();
     sys.refresh_disks();
     // TODO check destination available space.
-    psa::print_disks(&sys);
+    disk::print_disks(&sys);
 
     let destination = prompt("Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32)")?;
     if destination.is_empty() {

@@ -13,8 +13,6 @@ use console::Style;
 
 use indicatif::{DecimalBytes, MultiProgress};
 
-use sysinfo::{DiskExt, System, SystemExt};
-
 use tar::Archive;
 
 use crate::download;
@@ -221,49 +219,6 @@ pub async fn download_update(
         license_filename,
         update_filename,
     })
-}
-
-// Print disks list as a table
-pub fn print_disks(sys: &System) {
-    println!(
-        "{0: ^20} | {1: ^30} | {2: ^6} | {3: ^9} | {4: ^10} | {5: ^5} ",
-        "Name", "Mount point", "Type", "Removable", "Avail.", "Empty"
-    );
-    let red = Style::new().red();
-    let green = Style::new().green();
-    for disk in sys.disks() {
-        let disk_removable = if disk.is_removable() {
-            green.apply_to("Yes")
-        } else {
-            red.apply_to("No")
-        };
-        let file_system_str = str::from_utf8(disk.file_system()).unwrap();
-        let file_system = if file_system_str.eq_ignore_ascii_case("FAT32") {
-            green.apply_to(file_system_str)
-        } else {
-            red.apply_to(file_system_str)
-        };
-
-        let empty = if let Ok(files) = fs::read_dir(disk.mount_point()) {
-            if files.count() == 0 {
-                green.apply_to("Yes")
-            } else {
-                red.apply_to("No")
-            }
-        } else {
-            red.apply_to("N/A")
-        };
-
-        println!(
-            "{0: <20} | {1: <30} | {2: <6} | {3: <9} | {4: >10} | {5: <5}",
-            disk.name().to_string_lossy(),
-            disk.mount_point().to_string_lossy(),
-            file_system,
-            disk_removable,
-            DecimalBytes(disk.available_space()).to_string(),
-            empty
-        );
-    }
 }
 
 // Extract firmware update to specified location
