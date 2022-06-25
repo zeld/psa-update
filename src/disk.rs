@@ -77,7 +77,7 @@ pub fn get_current_dir_available_space(sys: &System) -> Option<u64> {
     for disk in sys.disks() {
         debug!("Disk {:?}", disk);
         if cwd.starts_with(disk.mount_point())
-            && (cwd_disk == None
+            && (cwd_disk.is_none()
                 || disk
                     .mount_point()
                     .starts_with(cwd_disk.unwrap().mount_point()))
@@ -85,7 +85,7 @@ pub fn get_current_dir_available_space(sys: &System) -> Option<u64> {
             cwd_disk = Some(disk);
         }
     }
-    if cwd_disk == None {
+    if cwd_disk.is_none() {
         debug!(
             "Failed to retrieve disk information for current working directory: {}",
             cwd.to_string_lossy()
