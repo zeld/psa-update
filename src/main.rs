@@ -5,7 +5,7 @@ use futures::future::try_join_all;
 
 use anyhow::{anyhow, Context, Error, Result};
 
-use clap::{crate_version, Command, Arg};
+use clap::{crate_version, Arg, Command};
 
 use reqwest::Client;
 
@@ -26,7 +26,7 @@ async fn main() -> Result<(), Error> {
         .about("CLI alternative to Peugeot/Citroën/Open update for NAC/RCC firmware updates, hopefully more robust. Supports for resume of downloads.")
         .arg(Arg::new("VIN")
             .help("Sets the VIN to check for update")
-            .required(true)
+            .required(false)
             .index(1))
         .arg(Arg::new("map")
             .help("Sets the map to check for update. Supported maps:\n\
@@ -44,9 +44,25 @@ async fn main() -> Result<(), Error> {
             .required(false)
             .long("map")
             .takes_value(true))
+        .arg(Arg::new("non-interactive")
+            .help("Sets non-interactive mode")
+            .required(false)
+            .long("non-interactive")
+            .takes_value(false))
         .get_matches();
 
-    let vin = matches.value_of("VIN").expect("VIN is missing");
+    let interactive = !matches.contains_id("non-interactive");
+    let vin = matches.value_of("VIN");
+    let vin = if vin.is_none() && interactive {
+        prompt("Please enter VIN").ok()
+    } else {
+        vin.map(|v| v.to_string())
+    };
+    if vin.is_none() {
+        return Err(anyhow!("No VIN provided"));
+    }
+    let vin = vin.unwrap();
+
     let map = matches.value_of("map");
 
     // TODO investigate compression such as gzip for faster download
@@ -54,7 +70,7 @@ async fn main() -> Result<(), Error> {
         .build()
         .with_context(|| format!("Failed to create HTTP client"))?;
 
-    let update_response = psa::request_available_updates(&client, vin, map).await?;
+    let update_response = psa::request_available_updates(&client, &vin, map).await?;
 
     if update_response.software.is_none() {
         println!("No update found");
@@ -68,7 +84,7 @@ async fn main() -> Result<(), Error> {
             // A empty update can be sent by the server when there are no available update
             if !update.update_id.is_empty() {
                 psa::print(&software, update);
-                if confirm("Download update?")? {
+                if !interactive || confirm("Download update?")? {
                     selected_updates.push(update.clone());
                 }
             }
@@ -87,6 +103,11 @@ async fn main() -> Result<(), Error> {
         .map(|update| psa::download_update(&client, update, &multi_progress));
 
     let downloaded_updates: Vec<psa::DownloadedUpdate> = try_join_all(downloads).await?;
+
+    if !interactive {
+        println!("Extraction not supported in non-interactive mode for now, exiting");
+        return Ok(());
+    }
 
     if !confirm(
         "To proceed to extraction of update(s), please insert an empty USB disk formatted as FAT32. Continue?",

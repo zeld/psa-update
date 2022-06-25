@@ -81,9 +81,13 @@ pub async fn download_file(
     };
 
     let progress_bar = multi_progress.add(ProgressBar::new(total_content_length));
-    progress_bar.set_style(ProgressStyle::with_template(
-        "{percent:>3}% [{bar}] {bytes_per_sec:<12} ETA={eta:<3} {wide_msg:.cyan}",
-    ).unwrap().progress_chars("#>-"));
+    progress_bar.set_style(
+        ProgressStyle::with_template(
+            "{percent:>3}% [{bar}] {bytes_per_sec:<12} ETA={eta:<3} {wide_msg:.cyan}",
+        )
+        .unwrap()
+        .progress_chars("#>-"),
+    );
 
     progress_bar.set_message(filename.to_string()); // Triggers first draw
     progress_bar.set_position(resume_position);
