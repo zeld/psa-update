@@ -6,6 +6,7 @@ use futures::future::try_join_all;
 use anyhow::{anyhow, Context, Error, Result};
 
 use clap::{crate_version, Arg, Command};
+use console::style;
 
 use log::debug;
 
@@ -97,7 +98,7 @@ async fn main() -> Result<(), Error> {
                             0
                         }
                     };
-                    total_update_size = total_update_size + update_size;
+                    total_update_size += update_size;
                 }
             }
         }
@@ -112,9 +113,16 @@ async fn main() -> Result<(), Error> {
     sys.refresh_disks_list();
     sys.refresh_disks();
     let disk_space = disk::get_current_dir_available_space(&sys);
-    disk_space.map(|s| if s < total_update_size {
-        println!("Warning, not enough space on disk to proceed with download. Available disk space in current directory: {}", DecimalBytes(s))
-    });
+    if let Some(space) = disk_space {
+        if space < total_update_size {
+            println!("{}, not enough space on disk to proceed with download. Available disk space in current directory: {}",
+                         style("Warning").yellow(),
+                         DecimalBytes(space));
+            if interactive && !(confirm("Continue anyway?")?) {
+                return Ok(());
+            }
+        }
+    }
 
     let multi_progress = MultiProgress::new();
 
