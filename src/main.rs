@@ -29,7 +29,7 @@ async fn main() -> Result<(), Error> {
         .version(crate_version!())
         .about("CLI alternative to Peugeot/Citroën/Open update for NAC/RCC firmware updates, hopefully more robust. Supports for resume of downloads.")
         .arg(Arg::new("VIN")
-            .help("Sets the VIN to check for update")
+            .help("Vehicle Identification Number (VIN) to check for update")
             .required(false)
             .index(1))
         .arg(Arg::new("map")
@@ -48,14 +48,14 @@ async fn main() -> Result<(), Error> {
             .required(false)
             .long("map")
             .takes_value(true))
-        .arg(Arg::new("non-interactive")
-            .help("Sets non-interactive mode")
+        .arg(Arg::new("silent")
+            .help("Sets silent (non-interactive) mode")
             .required(false)
-            .long("non-interactive")
+            .long("silent")
             .takes_value(false))
         .get_matches();
 
-    let interactive = !matches.contains_id("non-interactive");
+    let interactive = !matches.contains_id("silent");
     let vin = matches.value_of("VIN");
     let vin = if vin.is_none() && interactive {
         prompt("Please enter VIN").ok()
