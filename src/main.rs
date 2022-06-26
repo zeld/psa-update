@@ -53,6 +53,11 @@ async fn main() -> Result<(), Error> {
             .required(false)
             .long("silent")
             .takes_value(false))
+        .arg(Arg::new("extract")
+            .help("Location where yo extract update files. Should be the root of an empty FAT32 USB drive.")
+            .required(false)
+            .long("extract")
+            .takes_value(true))
         .get_matches();
 
     let interactive = !matches.contains_id("silent");
@@ -68,6 +73,7 @@ async fn main() -> Result<(), Error> {
     let vin = vin.unwrap();
 
     let map = matches.value_of("map");
+    let extract_location = matches.value_of("extract");
 
     // TODO investigate compression such as gzip for faster download
     let client = Client::builder()
@@ -133,28 +139,30 @@ async fn main() -> Result<(), Error> {
 
     let downloaded_updates: Vec<psa::DownloadedUpdate> = try_join_all(downloads).await?;
 
-    if !interactive {
-        println!("Extraction not supported in non-interactive mode for now, exiting");
-        return Ok(());
+    let mut extract_location = extract_location.map(str::to_string);
+    if interactive && extract_location.is_none() {
+        if !confirm(
+            "To proceed to extraction of update(s), please insert an empty USB disk formatted as FAT32. Continue?",
+        )? {
+            return Ok(());
+        }
+
+        // Listing available disks for extraction
+        sys.refresh_disks_list();
+        sys.refresh_disks();
+        // TODO check destination available space.
+        disk::print_disks(&sys);
+        let location = prompt("Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32)")?;
+        if !location.is_empty() {
+            extract_location = Some(location);
+        }
     }
 
-    if !confirm(
-        "To proceed to extraction of update(s), please insert an empty USB disk formatted as FAT32. Continue?",
-    )? {
-        return Ok(());
-    }
-
-    // Listing available disks for extraction
-    sys.refresh_disks_list();
-    sys.refresh_disks();
-    // TODO check destination available space.
-    disk::print_disks(&sys);
-
-    let destination = prompt("Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32)")?;
-    if destination.is_empty() {
+    if extract_location.is_none() {
         println!("No location, skipping extraction");
     } else {
-        let destination_path = Path::new(&destination);
+        let location = extract_location.unwrap();
+        let destination_path = Path::new(&location);
         if !destination_path.is_dir() {
             return Err(anyhow!(
                 "Destination does not exist or is not a directory: {}",
