@@ -20,6 +20,68 @@ use crate::download;
 // URL to query for firmware/map updates. The client_id below was extracted from the official Peugeot Update software
 const UPDATE_URL: &str = "https://api.groupe-psa.com/applications/majesticf/v1/getAvailableUpdate?client_id=20a4cf7c-f5fb-41d5-9175-a6e23b9880e5";
 
+pub struct Map<'a> {
+    code: &'a str,
+    name: &'a str,
+}
+
+impl<'a> Map<'a> {
+    pub fn get_name(&self) -> &str {
+        self.name
+    }
+    pub fn get_code(&self) -> &str {
+        self.code
+    }
+}
+
+// List of maps sorted by name
+pub const MAPS: &[Map] = &[
+    Map {
+        code: "afr",
+        name: "Africa",
+    },
+    Map {
+        code: "alg",
+        name: "Algeria",
+    },
+    Map {
+        code: "asia",
+        name: "Asia",
+    },
+    Map {
+        code: "eur",
+        name: "Europe",
+    },
+    Map {
+        code: "isr",
+        name: "Israel",
+    },
+    Map {
+        code: "latam",
+        name: "Latin America",
+    },
+    Map {
+        code: "latam-chile",
+        name: "Latin America Chile",
+    },
+    Map {
+        code: "mea",
+        name: "Middle East",
+    },
+    Map {
+        code: "oce",
+        name: "Oceania",
+    },
+    Map {
+        code: "russa",
+        name: "Russia",
+    },
+    Map {
+        code: "taiwan",
+        name: "Taiwan",
+    },
+];
+
 /*
 Sample response:
 {

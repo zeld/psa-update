@@ -6,24 +6,28 @@ use futures::future::try_join_all;
 use anyhow::{anyhow, Context, Error, Result};
 
 use clap::{crate_version, Arg, Command};
-use console::style;
 
 use log::debug;
 
 use reqwest::Client;
 
-use dialoguer::{Confirm, Input};
 use indicatif::{DecimalBytes, MultiProgress};
 
 use sysinfo::{System, SystemExt};
 
 mod disk;
 mod download;
+mod interact;
 mod psa;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     env_logger::init();
+
+    let mut map_info = "Sets the map to check for update. Supported maps:".to_string();
+    for map in psa::MAPS {
+        map_info = format!("{}\n - {}: {}", map_info, map.get_code(), map.get_name());
+    }
 
     let matches = Command::new("PSA firmware update.")
         .version(crate_version!())
@@ -33,18 +37,7 @@ async fn main() -> Result<(), Error> {
             .required(false)
             .index(1))
         .arg(Arg::new("map")
-            .help("Sets the map to check for update. Supported maps:\n\
-                - afr: Africa\n\
-                - alg: Algeria\n\
-                - asia: Asia\n\
-                - eur: Europe\n\
-                - isr: Israel\n\
-                - latam: Latin America\n\
-                - latam-chile: Latin America Chile\n\
-                - mea: Middle East\n\
-                - oce: Oceania\n\
-                - russia: Russia\n\
-                - taiwan: Taiwan")
+            .help(&*map_info)
             .required(false)
             .long("map")
             .takes_value(true))
@@ -62,8 +55,12 @@ async fn main() -> Result<(), Error> {
 
     let interactive = !matches.contains_id("silent");
     let vin = matches.value_of("VIN");
-    let vin = if vin.is_none() && interactive {
-        prompt("Please enter VIN").ok()
+    let vin_provided_as_arg = vin.is_some();
+    let map = matches.value_of("map");
+
+    // Vin not provided on command line, asking interactively
+    let vin = if !vin_provided_as_arg && interactive {
+        interact::prompt("Please enter VIN").ok()
     } else {
         vin.map(|v| v.to_string())
     };
@@ -72,7 +69,17 @@ async fn main() -> Result<(), Error> {
     }
     let vin = vin.unwrap();
 
-    let map = matches.value_of("map");
+    // Maps not provided on command line, asking interactively
+    let map = if !vin_provided_as_arg && map.is_none() && interactive {
+        let items: Vec<&str> = psa::MAPS.iter().map(|m| m.get_name()).collect();
+        match interact::select("Check for a map update (NAC only, hit ESC to skip)", &items)? {
+            Some(index) => Some(psa::MAPS[index].get_code().to_string()),
+            None => None,
+        }
+    } else {
+        map.map(|m| m.to_string())
+    };
+
     let extract_location = matches.value_of("extract");
 
     // TODO investigate compression such as gzip for faster download
@@ -80,7 +87,7 @@ async fn main() -> Result<(), Error> {
         .build()
         .with_context(|| format!("Failed to create HTTP client"))?;
 
-    let update_response = psa::request_available_updates(&client, &vin, map).await?;
+    let update_response = psa::request_available_updates(&client, &vin, map.as_deref()).await?;
 
     if update_response.software.is_none() {
         println!("No update found");
@@ -95,7 +102,7 @@ async fn main() -> Result<(), Error> {
             // A empty update can be sent by the server when there are no available update
             if !update.update_id.is_empty() {
                 psa::print(&software, update);
-                if !interactive || confirm("Download update?")? {
+                if !interactive || interact::confirm("Download update?")? {
                     selected_updates.push(update.clone());
                     let update_size = match update.update_size.parse() {
                         Ok(size) => size,
@@ -121,10 +128,9 @@ async fn main() -> Result<(), Error> {
     let disk_space = disk::get_current_dir_available_space(&sys);
     if let Some(space) = disk_space {
         if space < total_update_size {
-            println!("{}, not enough space on disk to proceed with download. Available disk space in current directory: {}",
-                         style("Warning").yellow(),
-                         DecimalBytes(space));
-            if interactive && !(confirm("Continue anyway?")?) {
+            interact::warn(&format!("Not enough space on disk to proceed with download. Available disk space in current directory: {}",
+                                   DecimalBytes(space)));
+            if interactive && !(interact::confirm("Continue anyway?")?) {
                 return Ok(());
             }
         }
@@ -141,7 +147,7 @@ async fn main() -> Result<(), Error> {
 
     let mut extract_location = extract_location.map(str::to_string);
     if interactive && extract_location.is_none() {
-        if !confirm(
+        if !interact::confirm(
             "To proceed to extraction of update(s), please insert an empty USB disk formatted as FAT32. Continue?",
         )? {
             return Ok(());
@@ -152,7 +158,7 @@ async fn main() -> Result<(), Error> {
         sys.refresh_disks();
         // TODO check destination available space.
         disk::print_disks(&sys);
-        let location = prompt("Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32)")?;
+        let location = interact::prompt("Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32)")?;
         if !location.is_empty() {
             extract_location = Some(location);
         }
@@ -177,15 +183,4 @@ async fn main() -> Result<(), Error> {
     }
 
     Ok(())
-}
-
-fn confirm(message: &str) -> Result<bool, Error> {
-    Ok(Confirm::new().with_prompt(message).interact()?)
-}
-
-fn prompt(message: &str) -> Result<String, Error> {
-    //FIXME interact_text() should be used instead but there is currently a bug
-    // on Windows that triggers an error when the user presses the Shift/AltGr keys
-    // https://github.com/mitsuhiko/dialoguer/issues/128
-    Ok(Input::new().with_prompt(message).interact()?)
 }
