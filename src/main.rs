@@ -71,13 +71,9 @@ async fn main() -> Result<(), Error> {
 
     // Maps not provided on command line, asking interactively
     let map = if !vin_provided_as_arg && map.is_none() && interactive {
-        let items: Vec<&str> = psa::MAPS.iter().map(|m| m.get_name()).collect();
-        match interact::select("Check for a map update (NAC only, hit ESC to skip)", &items)? {
-            Some(index) => Some(psa::MAPS[index].get_code().to_string()),
-            None => None,
-        }
+        interact::select_map()?
     } else {
-        map.map(|m| m.to_string())
+        map
     };
 
     let extract_location = matches.value_of("extract");
@@ -87,7 +83,7 @@ async fn main() -> Result<(), Error> {
         .build()
         .with_context(|| format!("Failed to create HTTP client"))?;
 
-    let update_response = psa::request_available_updates(&client, &vin, map.as_deref()).await?;
+    let update_response = psa::request_available_updates(&client, &vin, map).await?;
 
     if update_response.software.is_none() {
         println!("No update found");
@@ -164,21 +160,22 @@ async fn main() -> Result<(), Error> {
         }
     }
 
-    if extract_location.is_none() {
-        println!("No location, skipping extraction");
-    } else {
-        let location = extract_location.unwrap();
-        let destination_path = Path::new(&location);
-        if !destination_path.is_dir() {
-            return Err(anyhow!(
-                "Destination does not exist or is not a directory: {}",
-                destination_path.to_string_lossy()
-            ));
+    match extract_location {
+        Some(location) => {
+            let destination_path = Path::new(&location);
+            if !destination_path.is_dir() {
+                return Err(anyhow!(
+                    "Destination does not exist or is not a directory: {}",
+                    destination_path.to_string_lossy()
+                ));
+            }
+            for update in downloaded_updates {
+                psa::extract_update(&update, destination_path)
+                    .with_context(|| format!("Failed to extract update"))?;
+            }
         }
-
-        for update in downloaded_updates {
-            psa::extract_update(&update, destination_path)
-                .with_context(|| format!("Failed to extract update"))?;
+        None => {
+            println!("No location, skipping extraction");
         }
     }
 
