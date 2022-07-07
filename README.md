@@ -2,6 +2,8 @@
 
 CLI alternative to PSA (Peugeot / Citroën / DS / Opel) infotainment system update (NAC / RCC firmware and navigation maps), hopefully more robust.
 
+![Screenshot](screenshot.png)
+
 Features:
 - Download of RCC / NAC firmware updates, and GPS navigation map updates (NAC only)
 - Resume of download in case of failure
@@ -11,32 +13,32 @@ Features:
 ## Usage
 
 The command line executable can be invoked in a terminal using vehicle VIN as a parameter:
-```
+```shell
 $ psa-update <VIN>
 ```
 This will check for available RCC or NAC updates, and interactively ask for download and extraction of the firmware update to a USB device.
 
 To check for updates of both firmware and GPS navigation map (NAC only):
-```
+```shell
 $ psa-update <VIN> --map eur
 ```
 
 The list of available maps identifiers can be obtained using the help:
-```
+```shell
 $ psa-update --help
 ```
 
 Once copied to the USB drive, the update can be applied on the infotainement system following PSA instructions. For example for Peugeot: [RCC instructions](https://media-ct-ndp.peugeot.com/file/38/2/map-software-rcc-en.632382.pdf), [NAC instructions](https://media-ct-ndp.peugeot.com/file/38/0/map-software-nac-en.632380.pdf).
 
-## Setup
+## Install
 
 Binaries are available for Windows (x86-64), Linux (x86-64) and MacOS (x86-64) in the [releases](https://github.com/zeld/psa-update/releases) section: simply download and extract the `psa-update` executable.
 For other platforms the project can be built from source code (see below).
 
-## Building
+## Build from source
 
 To build and run from source code using stable rust compiler toolchain (version 1.54+):
-```
+```shell
 $ git clone https://github.com/zeld/psa-update.git
 $ cargo run
 ```
@@ -45,14 +47,21 @@ $ cargo run
 
 Download is possible behind a proxy provided the `http_proxy` and `https_proxy` environment variables are correctly configured.
 In a Linux or MacOS shell:
-```
+```shell
 export http_proxy=<host>:<port>
 export https_proxy=<host>:<port>
 ```
 In a Windows CMD prompt:
-```
+```cmd
 SET http_proxy=<host>:<port>
 SET https_proxy=<host>:<port>
+```
+
+## Logging
+
+Logging can be enabled using the `RUST_LOG` variable. For example to enable `debug` log level:
+```shell
+RUST_LOG="debug" ./psa-update
 ```
 
 ## Credits
