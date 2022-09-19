@@ -1,6 +1,6 @@
 [package]
 name = "psa-update"
-version = "0.0.4"
+version = "1.0.0"
 edition = "2021"
 
 [dependencies]
@@ -21,10 +21,10 @@ anyhow = "1.0"
 
 console = "0.15"
 dialoguer = "0.10"
-indicatif = "0.17.0-rc.11"
+indicatif = "0.17"
 
 regex = "1"
 
 tar = "0.4.20"
 
-sysinfo = "0.24"
+sysinfo = "0.26"
