@@ -5,8 +5,9 @@ hopefully more robust.
 
 ![Screenshot](screenshot.png)
 
-psa-update proposes the same features as the official firmware/map update application proposed by the car vendor, except
-that it does not format the USB device that has to be used to upload the firmware/map update to the car.
+psa-update offers mostly the same features as the official firmware/map update application proposed by the car vendor,
+except that it does not format the USB device that has to be used to upload the firmware/map update to the car. Updates
+are exclusively downloaded from the official PSA site.
 
 Features:
 - Download of RCC / NAC firmware updates, and GPS navigation map updates (NAC only)
@@ -76,4 +77,4 @@ RUST_LOG="debug" ./psa-update
 
 - Inspired from the Linux script in this french [forum post](https://www.forum-peugeot.com/Forum/threads/app-peugeot-update-logiciel-alternatif-multi-os-v1-5-26-08-2021.119707/)
 - For the list of navigation maps, and associated content, this french [forum post](https://forum-auto.caradisiac.com/topic/129967-le-nac-du-3008-ii-et-de-tous-les-v%C3%A9hicules-psa-lisez-en-premier-la-page-n%C2%B012/)
-- Mirror of firmware and map updates on [this site](https://sites.google.com/view/nac-rcc/)
+- List of firmware and map updates on [this site](https://sites.google.com/view/nac-rcc/)
