@@ -5,8 +5,8 @@ hopefully more robust.
 
 ![Screenshot](screenshot.png)
 
-`psa-update` proposes the same features as the firmware/map update application proposed by the car vendor, except that it
-does not format the USB device that has to upload the update to the car.
+psa-update proposes the same features as the official firmware/map update application proposed by the car vendor, except
+that it does not format the USB device that has to be used to upload the firmware/map update to the car.
 
 Features:
 - Download of RCC / NAC firmware updates, and GPS navigation map updates (NAC only)
