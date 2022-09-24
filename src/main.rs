@@ -69,8 +69,14 @@ async fn main() -> Result<(), Error> {
     }
     let vin = vin.unwrap();
 
-    // Maps not provided on command line, asking interactively
-    let map = if !vin_provided_as_arg && map.is_none() && interactive {
+    let client = Client::builder()
+        .build()
+        .with_context(|| format!("Failed to create HTTP client"))?;
+    let device_info = psa::request_device_information(&client, &vin).await?;
+    let is_nac: bool = device_info.devices.map(|l| l.iter().any(|d| d.ecu_type.contains("NAC"))) == Some(true);
+
+    // Maps not provided on command line, asking interactively for NAC
+    let map = if map.is_none() && is_nac && interactive {
         interact::select_map()?
     } else {
         map
@@ -79,10 +85,6 @@ async fn main() -> Result<(), Error> {
     let extract_location = matches.value_of("extract");
 
     // TODO investigate compression such as gzip for faster download
-    let client = Client::builder()
-        .build()
-        .with_context(|| format!("Failed to create HTTP client"))?;
-
     let update_response = psa::request_available_updates(&client, &vin, map).await?;
 
     if update_response.software.is_none() {
@@ -95,7 +97,7 @@ async fn main() -> Result<(), Error> {
 
     for software in update_response.software.unwrap() {
         for update in &software.update {
-            // A empty update can be sent by the server when there are no available update
+            // An empty update can be sent by the server when there is no available update
             if !update.update_id.is_empty() {
                 psa::print(&software, update);
                 if !interactive || interact::confirm("Download update?")? {
@@ -114,6 +116,7 @@ async fn main() -> Result<(), Error> {
     }
 
     if selected_updates.is_empty() {
+        println!("No update available");
         return Ok(());
     }
 

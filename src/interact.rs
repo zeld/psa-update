@@ -28,7 +28,7 @@ fn select(message: &str, items: &[&str]) -> Result<Option<usize>, Error> {
 
 pub fn select_map() -> Result<Option<&'static str>, Error> {
     let items: Vec<&str> = psa::MAPS.iter().map(|m| m.get_name()).collect();
-    let map_code = select("Check for a map update (NAC only, hit ESC to skip)", &items)?
+    let map_code = select("Check for a map update (hit ESC to skip)", &items)?
         .map(|index| psa::MAPS[index].get_code());
     Ok(map_code)
 }

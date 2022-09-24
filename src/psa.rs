@@ -17,6 +17,9 @@ use tar::Archive;
 
 use crate::download;
 
+// URL to query vehicle device: NAC or RCC
+const DEVICE_URL: &str = "https://api.groupe-psa.com/applications/majesticf/v1/devices/{VIN}?client_id=20a4cf7c-f5fb-41d5-9175-a6e23b9880e5";
+
 // URL to query for firmware/map updates. The client_id below was extracted from the official Peugeot Update software
 const UPDATE_URL: &str = "https://api.groupe-psa.com/applications/majesticf/v1/getAvailableUpdate?client_id=20a4cf7c-f5fb-41d5-9175-a6e23b9880e5";
 
@@ -73,7 +76,7 @@ pub const MAPS: &[Map] = &[
         name: "Oceania",
     },
     Map {
-        code: "russa",
+        code: "russia",
         name: "Russia",
     },
     Map {
@@ -81,6 +84,23 @@ pub const MAPS: &[Map] = &[
         name: "Taiwan",
     },
 ];
+
+/*
+Sample device response: {"vin":"xxx","requestDate":"2022-09-24T14:05:03+0200","devices":[{"ecuType":"NAC_EUR_WAVE2"}]}
+ */
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeviceResponse {
+    pub vin: String,
+    #[serde(rename = "requestDate")]
+    pub request_date: Option<String>,
+    pub devices: Option<Vec<Device>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Device {
+    #[serde(rename = "ecuType")]
+    pub ecu_type: String,
+}
 
 /*
 Sample response:
@@ -198,6 +218,42 @@ pub fn print(software: &Software, update: &SoftwareUpdate) {
             cyan.apply_to(&update.license_url)
         );
     }
+}
+
+pub async fn request_device_information(
+    client: &reqwest::Client,
+    vin: &str
+) -> Result<DeviceResponse, Error> {
+    let request = client
+        .get(DEVICE_URL.replace("{VIN}", vin))
+        .header("Content-type", "application/json")
+        .build()
+        .with_context(|| format!("Failed to build update request"))?;
+
+    debug!("Sending request {:?}", request);
+    let response = client.execute(request).await?;
+    if response.status() == 400 {
+        return Err(anyhow!(
+            "Failed to retrieve device information, make sure the VIN {} is correct.",
+            vin
+        ))
+    }
+    if response.status() == 404 {
+        return Err(anyhow!(
+            "Device not found, make sure the VIN {} is correct.",
+            vin
+        ))
+    }
+
+    debug!("Received response {:?}", response);
+
+    let response_text = response.text().await?;
+    debug!("Received response body {}", response_text);
+
+    let device_response: DeviceResponse = serde_json::from_str(&response_text)
+        .with_context(|| format!("Failed to parse device information"))?;
+
+    Ok(device_response)
 }
 
 pub async fn request_available_updates(
