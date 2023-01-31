@@ -74,7 +74,7 @@ jobs:
           7z a "$package.zip" "$package"
           certutil -hashfile "$package.zip" SHA256 > "$package.zip.sha256"
           echo "ASSET_PATH=$package.zip" >> $GITHUB_ENV
-          echo "ASSET_CSUM_PATH=$package.zip" >> $GITHUB_ENV
+          echo "ASSET_CSUM_PATH=$package.zip.sha256" >> $GITHUB_ENV
         else
           cp "target/${{ matrix.target }}/release/psa-update" "$package"
           tar czf "$package.tar.gz" "$package"
