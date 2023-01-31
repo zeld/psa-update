@@ -38,6 +38,10 @@ For example for Peugeot:
 - [RCC instructions](https://media-ct-ndp.peugeot.com/file/38/2/map-software-rcc-en.632382.pdf)
 - [NAC instructions](https://media-ct-ndp.peugeot.com/file/38/0/map-software-nac-en.632380.pdf).
 
+## Requirements
+
+On Linux, OpenSSL is required. On Windows and MacOS, nothing is required, the operating system TLS framework is used.
+
 ## Install
 
 Binaries are available for Windows (x86-64), Linux (x86-64) and MacOS (x86-64) in the [releases](https://github.com/zeld/psa-update/releases) section.
