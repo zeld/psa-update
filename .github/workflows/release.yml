@@ -88,5 +88,5 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         files: |
-          ${{ env.ASSET }}
-          ${{ env.ASSET_SUM }}
+          ${{ env.ASSET_PATH }}
+          ${{ env.ASSET_CSUM_PATH }}
