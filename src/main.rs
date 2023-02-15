@@ -73,7 +73,10 @@ async fn main() -> Result<(), Error> {
         .build()
         .with_context(|| format!("Failed to create HTTP client"))?;
     let device_info = psa::request_device_information(&client, &vin).await?;
-    let is_nac: bool = device_info.devices.map(|l| l.iter().any(|d| d.ecu_type.contains("NAC"))) == Some(true);
+    let is_nac: bool = device_info
+        .devices
+        .map(|l| l.iter().any(|d| d.ecu_type.contains("NAC")))
+        == Some(true);
 
     // Maps not provided on command line, asking interactively for NAC
     let map = if map.is_none() && is_nac && interactive {

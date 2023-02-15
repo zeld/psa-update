@@ -222,7 +222,7 @@ pub fn print(software: &Software, update: &SoftwareUpdate) {
 
 pub async fn request_device_information(
     client: &reqwest::Client,
-    vin: &str
+    vin: &str,
 ) -> Result<DeviceResponse, Error> {
     let request = client
         .get(DEVICE_URL.replace("{VIN}", vin))
@@ -236,13 +236,13 @@ pub async fn request_device_information(
         return Err(anyhow!(
             "Failed to retrieve device information, make sure the VIN {} is correct.",
             vin
-        ))
+        ));
     }
     if response.status() == 404 {
         return Err(anyhow!(
             "Device not found, make sure the VIN {} is correct.",
             vin
-        ))
+        ));
     }
 
     debug!("Received response {:?}", response);
