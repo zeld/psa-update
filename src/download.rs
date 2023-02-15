@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use tokio::fs;
 use tokio::fs::{File, OpenOptions};
 use tokio::io::{AsyncWriteExt, BufWriter};
@@ -104,6 +106,9 @@ pub async fn download_file(
     };
 
     let progress_bar = multi_progress.add(ProgressBar::new(total_content_length));
+    // Enable steady teak to workaround flickering eta and speed introduced in indicatif 1.17
+    // TODO remove when https://github.com/console-rs/indicatif/issues/394 is fixed
+    progress_bar.enable_steady_tick(Duration::from_secs(1));
     progress_bar.set_style(
         ProgressStyle::with_template(
             "{percent:>3}% [{bar}] {bytes_per_sec:<12} ETA={eta:<3} {wide_msg:.cyan}",
@@ -182,10 +187,12 @@ fn parse_filename_from_content_disposition(response: &Response) -> Result<Option
     }
 
     // We have a content-disposition header, we should be able to find a filename
-    let content_disposition_str = content_disposition
-        .unwrap()
-        .to_str()
-        .with_context(|| format!("Failed to fetch content-disposition header"))?;
+    let content_disposition_str = content_disposition.unwrap().to_str().with_context(|| {
+        format!(
+            "Failed to fetch content-disposition header: {:?}",
+            content_disposition.unwrap()
+        )
+    })?;
     debug!(
         "Parsing content-disposition header: {}",
         content_disposition_str
@@ -195,8 +202,13 @@ fn parse_filename_from_content_disposition(response: &Response) -> Result<Option
     // ContentDisposition exists in header crate, but parsing is currently limited and does not
     // support for filename. See: https://github.com/hyperium/headers/issues/8
     // Workaround: use an ugly regexp
-    let re = Regex::new(r"attachment; filename=(\S+)")
-        .with_context(|| format!("Failed to compile content-disposition regexp"))?;
+    let re_str = r"attachment; filename=(\S+)";
+    let re = Regex::new(re_str).with_context(|| {
+        format!(
+            "Failed to compile regular expression to parse content-disposition header: {}",
+            re_str
+        )
+    })?;
 
     let re_match: Option<Match> = re.captures(content_disposition_str).and_then(|c| c.get(1));
 
