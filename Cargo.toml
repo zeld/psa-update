@@ -1,6 +1,6 @@
 [package]
 name = "psa-update"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2021"
 
 [dependencies]
@@ -27,4 +27,4 @@ regex = "1"
 
 tar = "0.4.20"
 
-sysinfo = "0.28"
+sysinfo = "0.29"
