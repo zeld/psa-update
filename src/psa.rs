@@ -266,7 +266,7 @@ pub async fn request_available_updates(
     // - ovip-int-firmware-version: Firmware update for Continental NAC (Navigation Audio Connectée)
     // - aio-firmware: Firmware update for Continental NAC AIO (All In One) - Used outside Europe (South America)
     // - for NAC maps: map-afr, map-alg, map-asia, map-eur, map-isr, map-latam, map-latam-chile, map-mea, map-oce, map-russia, map-taiwan
-    let body = if map == None {
+    let body = if map.is_none() {
         serde_json::json!({
             "vin": vin,
             "softwareTypes": [
@@ -346,7 +346,7 @@ pub fn extract_update(update: &DownloadedUpdate, destination_path: &Path) -> Res
         destination_path.to_string_lossy()
     );
 
-    if update.license_filename != None {
+    if update.license_filename.is_some() {
         debug!("Copying licence file");
         let licence_destination_path = destination_path.join("license");
         fs::create_dir(&licence_destination_path).with_context(|| {

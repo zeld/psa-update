@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use tokio::fs;
 use tokio::fs::{File, OpenOptions};
 use tokio::io::{AsyncWriteExt, BufWriter};
@@ -106,9 +104,6 @@ pub async fn download_file(
     };
 
     let progress_bar = multi_progress.add(ProgressBar::new(total_content_length));
-    // Enable steady teak to workaround flickering eta and speed introduced in indicatif 1.17
-    // TODO remove when https://github.com/console-rs/indicatif/issues/394 is fixed
-    progress_bar.enable_steady_tick(Duration::from_secs(1));
     progress_bar.set_style(
         ProgressStyle::with_template(
             "{percent:>3}% [{bar}] {bytes_per_sec:<12} ETA={eta:<3} {wide_msg:.cyan}",
@@ -163,8 +158,8 @@ pub async fn download_file(
 fn parse_filename(response: &Response) -> Result<&str, Error> {
     // Try to parse content-disposition header for filename
     let filename_from_header = parse_filename_from_content_disposition(response)?;
-    if filename_from_header != None {
-        return Ok(filename_from_header.unwrap());
+    if let Some(filename) = filename_from_header {
+        return Ok(filename);
     }
 
     // Deduce filename from last path segment of url
@@ -182,7 +177,7 @@ fn parse_filename(response: &Response) -> Result<&str, Error> {
 // Parse the name of the file to download from the content-disposition header of the response
 fn parse_filename_from_content_disposition(response: &Response) -> Result<Option<&str>, Error> {
     let content_disposition = response.headers().get("content-disposition");
-    if content_disposition == None {
+    if content_disposition.is_none() {
         return Ok(None); // No content-disposition header
     }
 
