@@ -54,7 +54,7 @@ async fn main() -> Result<(), Error> {
         .get_matches();
 
     let interactive = !matches.contains_id("silent");
-    let vin = matches.value_of("VIN");
+    let vin = matches.value_of("VIN").map(|s| s.to_uppercase());
     let vin_provided_as_arg = vin.is_some();
     let map = matches.value_of("map");
 
