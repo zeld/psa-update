@@ -119,7 +119,7 @@ async fn main() -> Result<(), Error> {
     }
 
     if selected_updates.is_empty() {
-        println!("No update available");
+        println!("No update to download");
         return Ok(());
     }
 
