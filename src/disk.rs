@@ -28,7 +28,9 @@ pub fn print_disks(sys: &System) {
             red.apply_to("No")
         };
         let file_system_str = str::from_utf8(disk.file_system()).unwrap();
-        let file_system = if file_system_str.eq_ignore_ascii_case("FAT32") {
+        let file_system = if file_system_str.eq_ignore_ascii_case("vfat")
+            || file_system_str.eq_ignore_ascii_case("fat32")
+        {
             green.apply_to(file_system_str)
         } else {
             red.apply_to(file_system_str)
