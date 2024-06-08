@@ -13,8 +13,6 @@ use reqwest::Client;
 
 use indicatif::{DecimalBytes, MultiProgress};
 
-use sysinfo::{System, SystemExt};
-
 mod disk;
 mod download;
 mod interact;
@@ -124,10 +122,7 @@ async fn main() -> Result<(), Error> {
     }
 
     // Check available disk size
-    let mut sys: System = System::new();
-    sys.refresh_disks_list();
-    sys.refresh_disks();
-    let disk_space = disk::get_current_dir_available_space(&sys);
+    let disk_space = disk::get_current_dir_available_space();
     if let Some(space) = disk_space {
         if space < total_update_size {
             interact::warn(&format!("Not enough space on disk to proceed with download. Available disk space in current directory: {}",
@@ -156,10 +151,8 @@ async fn main() -> Result<(), Error> {
         }
 
         // Listing available disks for extraction
-        sys.refresh_disks_list();
-        sys.refresh_disks();
         // TODO check destination available space.
-        disk::print_disks(&sys);
+        disk::print_disks();
         let location = interact::prompt("Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32)")?;
         if !location.is_empty() {
             extract_location = Some(location);

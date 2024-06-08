@@ -27,4 +27,4 @@ regex = "1"
 
 tar = "0.4"
 
-sysinfo = "0.29"
+sysinfo = "0.30"

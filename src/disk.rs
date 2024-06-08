@@ -1,8 +1,7 @@
 use std::env::current_dir;
 use std::fs;
-use std::str;
 
-use sysinfo::{Disk, DiskExt, System, SystemExt};
+use sysinfo::{Disk, Disks};
 
 use console::Style;
 use indicatif::DecimalBytes;
@@ -10,24 +9,21 @@ use indicatif::DecimalBytes;
 use log::debug;
 
 // Print disks list as a table
-// Requires list of disk to be up to date:
-//     let mut sys: System = System::new();
-//     sys.refresh_disks_list();
-//     sys.refresh_disks();
-pub fn print_disks(sys: &System) {
+pub fn print_disks() {
     println!(
         "{0: ^20} | {1: ^30} | {2: ^6} | {3: ^9} | {4: ^10} | {5: ^5} ",
         "Name", "Mount point", "Type", "Removable", "Avail.", "Empty"
     );
     let red = Style::new().red();
     let green = Style::new().green();
-    for disk in sys.disks() {
+    let disks = Disks::new_with_refreshed_list();
+    for disk in &disks {
         let disk_removable = if disk.is_removable() {
             green.apply_to("Yes")
         } else {
             red.apply_to("No")
         };
-        let file_system_str = str::from_utf8(disk.file_system()).unwrap();
+        let file_system_str = disk.file_system().to_string_lossy();
         let file_system = if file_system_str.eq_ignore_ascii_case("vfat")
             || file_system_str.eq_ignore_ascii_case("fat32")
         {
@@ -59,11 +55,7 @@ pub fn print_disks(sys: &System) {
 }
 
 // Available disk space in current directory
-// Requires list of disk to be up to date:
-//     let mut sys: System = System::new();
-//     sys.refresh_disks_list();
-//     sys.refresh_disks();
-pub fn get_current_dir_available_space(sys: &System) -> Option<u64> {
+pub fn get_current_dir_available_space() -> Option<u64> {
     let cwd_result = current_dir();
     if cwd_result.is_err() {
         debug!(
@@ -76,7 +68,8 @@ pub fn get_current_dir_available_space(sys: &System) -> Option<u64> {
     let mut cwd_disk: Option<&Disk> = None;
     // Lookup disk whose mount point is parent of cwd
     // In case there are multiple candidates, pick up the "nearest" parent of cwd
-    for disk in sys.disks() {
+    let disks = Disks::new_with_refreshed_list();
+    for disk in &disks {
         debug!("Disk {:?}", disk);
         if cwd.starts_with(disk.mount_point())
             && (cwd_disk.is_none()
