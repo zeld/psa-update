@@ -5,7 +5,7 @@ use futures::future::try_join_all;
 
 use anyhow::{anyhow, Context, Error, Result};
 
-use clap::{crate_version, Arg, Command};
+use clap::{crate_version, Arg, ArgAction, Command};
 
 use log::debug;
 
@@ -35,26 +35,26 @@ async fn main() -> Result<(), Error> {
             .required(false)
             .index(1))
         .arg(Arg::new("map")
-            .help(&*map_info)
+            .help(map_info)
             .required(false)
             .long("map")
-            .takes_value(true))
+            .action(ArgAction::Set))
         .arg(Arg::new("silent")
             .help("Sets silent (non-interactive) mode")
             .required(false)
             .long("silent")
-            .takes_value(false))
+            .action(ArgAction::Set))
         .arg(Arg::new("extract")
             .help("Location where yo extract update files. Should be the root of an empty FAT32 USB drive.")
             .required(false)
             .long("extract")
-            .takes_value(true))
+            .action(ArgAction::Set))
         .get_matches();
 
     let interactive = !matches.contains_id("silent");
-    let vin = matches.value_of("VIN").map(|s| s.to_uppercase());
+    let vin = matches.get_one::<String>("VIN").map(|s| s.to_uppercase());
     let vin_provided_as_arg = vin.is_some();
-    let map = matches.value_of("map");
+    let map = matches.get_one::<String>("map").map(|s| s.as_str());
 
     // Vin not provided on command line, asking interactively
     let vin = if !vin_provided_as_arg && interactive {
@@ -69,7 +69,7 @@ async fn main() -> Result<(), Error> {
 
     let client = Client::builder()
         .build()
-        .with_context(|| format!("Failed to create HTTP client"))?;
+        .context("Failed to create HTTP client")?;
     let device_info = psa::request_device_information(&client, &vin).await?;
     let is_nac: bool = device_info
         .devices
@@ -83,7 +83,7 @@ async fn main() -> Result<(), Error> {
         map
     };
 
-    let extract_location = matches.value_of("extract");
+    let extract_location = matches.get_one::<String>("extract").map(|s| s.as_str());
 
     // TODO investigate compression such as gzip for faster download
     let update_response = psa::request_available_updates(&client, &vin, map).await?;
@@ -170,7 +170,7 @@ async fn main() -> Result<(), Error> {
             }
             for update in downloaded_updates {
                 psa::extract_update(&update, destination_path)
-                    .with_context(|| format!("Failed to extract update"))?;
+                    .context("Failed to extract update")?;
             }
         }
         None => {

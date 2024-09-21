@@ -228,7 +228,7 @@ pub async fn request_device_information(
         .get(DEVICE_URL.replace("{VIN}", vin))
         .header("Content-type", "application/json")
         .build()
-        .with_context(|| format!("Failed to build update request"))?;
+        .context("Failed to build update request")?;
 
     debug!("Sending request {:?}", request);
     let response = client.execute(request).await?;
@@ -244,6 +244,12 @@ pub async fn request_device_information(
             vin
         ));
     }
+    if response.status().is_server_error() {
+        return Err(anyhow!(
+            "Received error from server when requesting device information: {}",
+            response.status()
+        ));
+    }
 
     debug!("Received response {:?}", response);
 
@@ -251,7 +257,7 @@ pub async fn request_device_information(
     debug!("Received response body {}", response_text);
 
     let device_response: DeviceResponse = serde_json::from_str(&response_text)
-        .with_context(|| format!("Failed to parse device information"))?;
+        .with_context(|| format!("Failed to parse device information: {response_text}"))?;
 
     Ok(device_response)
 }
@@ -294,18 +300,25 @@ pub async fn request_available_updates(
         .header("Content-type", "application/json")
         .body(body_as_text)
         .build()
-        .with_context(|| format!("Failed to build update request"))?;
+        .context("Failed to build update request")?;
 
     debug!("Sending request {:?} with body {:?}", request, body);
     let response = client.execute(request).await?;
 
     debug!("Received response {:?}", response);
 
+    if response.status().is_server_error() {
+        return Err(anyhow!(
+            "Received error from server when requesting updates: {}",
+            response.status()
+        ));
+    }
+
     let response_text = response.text().await?;
     debug!("Received response body {}", response_text);
 
     let update_response: UpdateResponse = serde_json::from_str(&response_text)
-        .with_context(|| format!("Failed to parse response"))?;
+        .with_context(|| format!("Failed to parse response: {response_text}"))?;
 
     if update_response.request_result != "OK" {
         Err(anyhow!(
