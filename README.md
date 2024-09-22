@@ -5,14 +5,14 @@ hopefully more robust.
 
 ![Screenshot](screenshot.png)
 
-psa-update offers mostly the same features as the official firmware/map update application proposed by the car vendor,
+`psa-update` offers mostly the same features as the official firmware/map update application proposed by the car vendor,
 except that it does not format the USB device that has to be used to upload the firmware/map update to the car. Updates
 are exclusively downloaded from the official PSA site.
 
 Features:
-- Download of RCC / NAC firmware updates, and GPS navigation map updates (NAC only)
-- Resume of download in case of failure
-- Preparation of USB storage device for car system update
+- Download updates of RCC / NAC firmwares, and navigation maps (NAC only)
+- Resume downloads in case of failure
+- Prepares USB flash drive for car infotainment system update
 - Lightweight self-contained executable that can run on multiple platforms: Windows, Linux, MacOS
 
 ## Usage
@@ -21,19 +21,7 @@ The command line executable can be invoked in a terminal using vehicle VIN as a 
 ```shell
 $ psa-update <VIN>
 ```
-This will check for available RCC or NAC updates, and interactively ask for download and extraction of the firmware update to a USB device.
-
-To check for updates of both firmware and GPS navigation map (NAC only):
-```shell
-$ psa-update <VIN> --map eur
-```
-
-The list of available maps identifiers can be obtained using the help:
-```shell
-$ psa-update --help
-```
-
-The update and license files must be copied to an empty FAT32 USB drive, eiter using the tool or manually.
+This will interactively check for available NAC/RCC/map updates, and extract updates to a USB flash drive.
 
 Once copied to the USB drive, the update can be applied on the infotainment system following PSA instructions.
 For example for Peugeot:
@@ -52,7 +40,7 @@ For other platforms the project can be built from source code (see below).
 
 ## Build from source
 
-To build and run from source code using stable rust compiler toolchain (version 1.54+):
+To build and run from source code using stable rust compiler toolchain (version 1.81+):
 ```shell
 $ git clone https://github.com/zeld/psa-update.git
 $ cargo run
