@@ -17,11 +17,11 @@ Features:
 
 ## Usage
 
-The command line executable can be invoked in a terminal using vehicle VIN as a parameter:
+The command line executable can be invoked in a terminal:
 ```shell
-$ psa-update <VIN>
+$ psa-update
 ```
-This will interactively check for available NAC/RCC/map updates, and extract updates to a USB flash drive.
+This will interactively ask for vehicle VIN, and check for available NAC/RCC/map updates, and extract updates to a USB flash drive.
 
 Once copied to the USB drive, the update can be applied on the infotainment system following PSA instructions.
 For example for Peugeot:
