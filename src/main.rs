@@ -49,12 +49,18 @@ async fn main() -> Result<(), Error> {
             .required(false)
             .long("extract")
             .action(ArgAction::Set))
+        .arg(Arg::new("sequential-download")
+            .help("Forces sequential download of updates. By default updates are downloaded concurrently.")
+            .required(false)
+            .long("sequential-download")
+            .action(ArgAction::SetTrue))
         .get_matches();
 
     let interactive = !matches.contains_id("silent");
     let vin = matches.get_one::<String>("VIN").map(|s| s.to_uppercase());
     let vin_provided_as_arg = vin.is_some();
     let map = matches.get_one::<String>("map").map(|s| s.as_str());
+    let sequential_download = matches.get_one::<bool>("sequential-download").unwrap();
 
     // Vin not provided on command line, asking interactively
     let vin = if !vin_provided_as_arg && interactive {
@@ -96,7 +102,14 @@ async fn main() -> Result<(), Error> {
     let mut selected_updates: Vec<psa::SoftwareUpdate> = Vec::new();
     let mut total_update_size = 0_u64;
 
-    for software in update_response.software.unwrap() {
+    let mut software_list: Vec<psa::Software> = update_response
+        .software
+        .expect("Expected at least as software in server response");
+
+    // For NAC, let's sort in reverse order of software type to display firmware (ovip) first, then map (map)
+    software_list.sort_by(|u1, u2| u2.software_type.cmp(&u1.software_type));
+
+    for software in software_list {
         for update in &software.update {
             // An empty update can be sent by the server when there is no available update
             if !update.update_id.is_empty() {
@@ -135,12 +148,20 @@ async fn main() -> Result<(), Error> {
 
     let multi_progress = MultiProgress::new();
 
-    // Download concurrently
-    let downloads = selected_updates
-        .iter()
-        .map(|update| psa::download_update(&client, update, &multi_progress));
-
-    let downloaded_updates: Vec<psa::DownloadedUpdate> = try_join_all(downloads).await?;
+    let downloaded_updates: Vec<psa::DownloadedUpdate> = if *sequential_download {
+        // Download sequentially
+        let mut result: Vec<psa::DownloadedUpdate> = Vec::new();
+        for update in selected_updates {
+            result.push(psa::download_update(&client, &update, &multi_progress).await?);
+        }
+        result
+    } else {
+        // Download concurrently
+        let downloads = selected_updates
+            .iter()
+            .map(|update| psa::download_update(&client, update, &multi_progress));
+        try_join_all(downloads).await?
+    };
 
     let mut extract_location = extract_location.map(str::to_string);
     if interactive && extract_location.is_none() {
