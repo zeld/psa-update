@@ -12,7 +12,7 @@ use log::debug;
 pub fn print_disks() {
     println!(
         "{0: ^20} | {1: ^30} | {2: ^6} | {3: ^9} | {4: ^10} | {5: ^5} ",
-        "Name", "Mount point", "Type", "Removable", "Avail.", "Empty"
+        "Name", "Location", "Type", "Removable", "Avail.", "Empty"
     );
     let red = Style::new().red();
     let green = Style::new().green();
