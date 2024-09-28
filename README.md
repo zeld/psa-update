@@ -25,8 +25,8 @@ This will interactively ask for vehicle VIN, check for available NAC/RCC/map upd
 
 Once copied to the USB drive, the update can be applied on the infotainment system following PSA instructions.
 For example for Peugeot:
-- [RCC instructions](https://media-ct-ndp.peugeot.com/file/38/2/map-software-rcc-en.632382.pdf)
-- [NAC instructions](https://media-ct-ndp.peugeot.com/file/38/0/map-software-nac-en.632380.pdf).
+- [RCC instructions](https://web.archive.org/web/20220719220945/https://media-ct-ndp.peugeot.com/file/38/2/map-software-rcc-en.632382.pdf)
+- [NAC instructions](https://web.archive.org/web/20230602131011/https://media-ct-ndp.peugeot.com/file/38/0/map-software-nac-en.632380.pdf)
 
 ## Requirements
 
