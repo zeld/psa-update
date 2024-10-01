@@ -34,7 +34,7 @@ On Linux, OpenSSL is required. On Windows and MacOS, nothing is required, the op
 
 ## Install
 
-Binaries are available for Windows (x86-64), Linux (x86-64) and MacOS (x86-64) in the [releases](https://github.com/zeld/psa-update/releases) section.
+Binaries are available for Windows (x86-64), Linux (x86-64) and MacOS (x86-64 and AArch64/ARM64) in the [releases](https://github.com/zeld/psa-update/releases) section.
 To install, simply download and extract the `psa-update` executable.
 For other platforms the project can be built from source code (see below).
 
