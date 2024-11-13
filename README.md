@@ -1,12 +1,12 @@
 # psa-update
 
-CLI alternative to PSA (Peugeot / Citroën / DS / Opel) infotainment system update (NAC / RCC firmware and navigation maps), hopefully more robust.
+CLI alternative to Stellantis (Peugeot / Citroën / DS / Opel) update applications for car infotainment system (NAC / RCC firmware and navigation maps), hopefully more robust.
 
 ![Screenshot](screenshot.png)
 
-`psa-update` offers mostly the same features as the official firmware/map update application proposed by the car vendor, except that it does not format the USB device that has to be used to upload the firmware/map update to the car.
+`psa-update` offers mostly the same features as the official firmware/map update application proposed by the car vendor, except that it does not format the USB flash drice that has to be used to upload the firmware/map update to the car.
 
-Updates are exclusively downloaded from the official PSA site.
+Updates are exclusively downloaded from the official Stellantis website.
 
 Features:
 
@@ -25,7 +25,7 @@ $ psa-update
 
 This will interactively ask for vehicle VIN, check for available NAC/RCC/map updates, and extract updates to a USB flash drive.
 
-Once copied to the USB drive, the update can be applied on the infotainment system following PSA instructions.
+Once copied to the USB drive, the update can be applied on the car infotainment system following stellantis instructions.
 
 For exemple for Peugeot:
 
@@ -34,15 +34,15 @@ For exemple for Peugeot:
 
 ## Requirements
 
-For the transfer of updates to the car, a USB device is required:
+For the transfer of updates to the car, a USB flash drive is required:
 
 - Recommended size is **32 GB**. Although most updates are smaller than 16 GB, some navigations maps can be larger than 16 GB.
-- It must be formatted as **FAT32**.
+- It must be formatted as **FAT32** and **empty**.
 
-> Note: When using Windows, if the USB device is larger than 32 GB, it is not possible to format it using FAT32. Alternatives are:
+> Note: When using Windows, if the USB flash drive is larger than 32 GB, it is not possible to format it using FAT32. Alternatives are:
 >
 > - Create a 32 GB partition and format if as FAT32 and leave the rest unformatted.
-> - Use a third-party tool to format the USB device using FAT32. The official vendor application presumably uses [fat32format from Ridgecrop Consultants Ltd](http://ridgecrop.co.uk/index.htm?guiformat.htm) to achieve this.
+> - Use a third-party tool to format the USB flash drive using FAT32. The official vendor application presumably uses [fat32format from Ridgecrop Consultants Ltd](http://ridgecrop.co.uk/index.htm?guiformat.htm) to achieve this.
 
 On Linux, OpenSSL is required. On Windows and MacOS, nothing is required, the operating system TLS framework is used.
 
@@ -51,6 +51,7 @@ On Linux, OpenSSL is required. On Windows and MacOS, nothing is required, the op
 Binaries are available for Windows (x86-64), Linux (x86-64) and MacOS (x86-64 and AArch64/ARM64) in the [releases](https://github.com/zeld/psa-update/releases) section.
 
 To install, simply download and extract the `psa-update` executable.
+
 For other platforms the project can be built from source code (see below).
 
 ## Build from source
@@ -59,12 +60,14 @@ To build and run from source code using stable rust compiler toolchain (version 
 
 ```shell
 $ git clone https://github.com/zeld/psa-update.git
-$ cargo run
+$ cd psa-update
+$ cargo build --release
+$ ./target/release/psa-update --version
 ```
 
 ## Proxy
 
-Download is possible behind a proxy provided the `http_proxy` and `https_proxy` environment variables are correctly set.
+Download of updates is possible behind a proxy provided the `http_proxy` and `https_proxy` environment variables are correctly set.
 
 Using a Linux or MacOS terminal:
 
