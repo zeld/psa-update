@@ -29,7 +29,7 @@ async fn main() -> Result<(), Error> {
 
     let matches = Command::new("PSA firmware update.")
         .version(crate_version!())
-        .about("CLI alternative to Peugeot/Citroën/Open update for NAC/RCC firmware updates, hopefully more robust. Supports for resume of downloads.")
+        .about("CLI alternative to Peugeot/Citroën/Opel/DS update applications for car infotainment system (NAC/RCC fimrware and navigation maps), hopefully more robust. Supports for resume of downloads.")
         .arg(Arg::new("VIN")
             .help("Vehicle Identification Number (VIN) to check for update")
             .required(false)
