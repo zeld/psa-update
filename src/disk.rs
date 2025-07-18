@@ -70,7 +70,7 @@ pub fn get_current_dir_available_space() -> Option<u64> {
     // In case there are multiple candidates, pick up the "nearest" parent of cwd
     let disks = Disks::new_with_refreshed_list();
     for disk in &disks {
-        debug!("Disk {:?}", disk);
+        debug!("Disk {disk:?}");
         if cwd.starts_with(disk.mount_point())
             && (cwd_disk.is_none()
                 || disk

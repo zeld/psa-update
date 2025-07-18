@@ -3,9 +3,9 @@ use std::vec::Vec;
 
 use futures::future::try_join_all;
 
-use anyhow::{anyhow, Context, Error, Result};
+use anyhow::{Context, Error, Result, anyhow};
 
-use clap::{crate_version, Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, Command, crate_version};
 
 use log::debug;
 
@@ -45,7 +45,7 @@ async fn main() -> Result<(), Error> {
             .long("silent")
             .action(ArgAction::Set))
         .arg(Arg::new("extract")
-            .help("Location where yo extract update files. Should be the root of an empty FAT32 USB drive.")
+            .help("Location where to extract update files. Should be the root of an empty FAT32 USB drive.")
             .required(false)
             .long("extract")
             .action(ArgAction::Set))
@@ -104,7 +104,7 @@ async fn main() -> Result<(), Error> {
 
     let mut software_list: Vec<psa::Software> = update_response
         .software
-        .expect("Expected at least as software in server response");
+        .expect("Expected at least a software in server response");
 
     // For NAC, let's sort in reverse order of software type to display firmware (ovip) first, then map (map)
     software_list.sort_by(|u1, u2| u2.software_type.cmp(&u1.software_type));
@@ -138,8 +138,10 @@ async fn main() -> Result<(), Error> {
     let disk_space = disk::get_current_dir_available_space();
     if let Some(space) = disk_space {
         if space < total_update_size {
-            interact::warn(&format!("Not enough space on disk to proceed with download. Available disk space in current directory: {}",
-                                   DecimalBytes(space)));
+            interact::warn(&format!(
+                "Not enough space on disk to proceed with download. Available disk space in current directory: {}",
+                DecimalBytes(space)
+            ));
             if interactive && !(interact::confirm("Continue anyway?")?) {
                 return Ok(());
             }
@@ -174,7 +176,9 @@ async fn main() -> Result<(), Error> {
         // Listing available disks for extraction
         // TODO check destination available space.
         disk::print_disks();
-        let location = interact::prompt("Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32)")?;
+        let location = interact::prompt(
+            "Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32)",
+        )?;
         if !location.is_empty() {
             extract_location = Some(location);
         }
@@ -192,6 +196,18 @@ async fn main() -> Result<(), Error> {
             for update in downloaded_updates {
                 psa::extract_update(&update, destination_path)
                     .context("Failed to extract update")?;
+            }
+            println!(
+                "The update can be applied on the car infotainment system following stellantis instructions."
+            );
+            if is_nac {
+                println!(
+                    "For example, for Peugeot NAC: https://web.archive.org/web/20220719220945/https://media-ct-ndp.peugeot.com/file/38/2/map-software-rcc-en.632382.pdf"
+                );
+            } else {
+                println!(
+                    "For example, for Peugeot RCC: https://web.archive.org/web/20230602131011/https://media-ct-ndp.peugeot.com/file/38/0/map-software-nac-en.632380.pdf"
+                );
             }
         }
         None => {

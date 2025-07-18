@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use log::debug;
 
-use anyhow::{anyhow, Context, Error, Result};
+use anyhow::{Context, Error, Result, anyhow};
 
 use console::Style;
 
@@ -230,7 +230,7 @@ pub async fn request_device_information(
         .build()
         .context("Failed to build update request")?;
 
-    debug!("Sending request {:?}", request);
+    debug!("Sending request {request:?}");
     let response = client.execute(request).await?;
     if response.status() == 400 {
         return Err(anyhow!(
@@ -251,10 +251,10 @@ pub async fn request_device_information(
         ));
     }
 
-    debug!("Received response {:?}", response);
+    debug!("Received response {response:?}");
 
     let response_text = response.text().await?;
-    debug!("Received response body {}", response_text);
+    debug!("Received response body {response_text}");
 
     let device_response: DeviceResponse = serde_json::from_str(&response_text)
         .with_context(|| format!("Failed to parse device information: {response_text}"))?;
@@ -302,10 +302,10 @@ pub async fn request_available_updates(
         .build()
         .context("Failed to build update request")?;
 
-    debug!("Sending request {:?} with body {:?}", request, body);
+    debug!("Sending request {request:?} with body {body:?}");
     let response = client.execute(request).await?;
 
-    debug!("Received response {:?}", response);
+    debug!("Received response {response:?}");
 
     if response.status().is_server_error() {
         return Err(anyhow!(
@@ -315,7 +315,7 @@ pub async fn request_available_updates(
     }
 
     let response_text = response.text().await?;
-    debug!("Received response body {}", response_text);
+    debug!("Received response body {response_text}");
 
     let update_response: UpdateResponse = serde_json::from_str(&response_text)
         .with_context(|| format!("Failed to parse response: {response_text}"))?;
@@ -335,7 +335,7 @@ pub async fn download_update(
     software_update: &SoftwareUpdate,
     multi_progress: &MultiProgress,
 ) -> Result<DownloadedUpdate, Error> {
-    debug!("Downloading update {:?}", software_update);
+    debug!("Downloading update {software_update:?}");
     let license_filename = if software_update.license_url.is_empty() {
         None
     } else {

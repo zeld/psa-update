@@ -4,7 +4,7 @@ use tokio::io::{AsyncWriteExt, BufWriter};
 
 use log::debug;
 
-use anyhow::{anyhow, Context, Error, Result};
+use anyhow::{Context, Error, Result, anyhow};
 
 use regex::{Match, Regex};
 
@@ -27,9 +27,9 @@ pub async fn request_file_download_info(
     url: &str,
 ) -> Result<FileDownloadInfo, Error> {
     // Issuing a HEAD request to retrieve download name and size
-    debug!("Sending request HEAD {}", url);
+    debug!("Sending request HEAD {url}");
     let head_response = client.get(url).send().await?;
-    debug!("Received response {:?}", head_response);
+    debug!("Received response {head_response:?}");
 
     // Parse target filename from response
     let filename = String::from(parse_filename(&head_response)?);
@@ -82,16 +82,13 @@ pub async fn download_file(
 
     let mut request = client.get(url);
     if resume_position > 0 {
-        debug!(
-            "Adding range header to resume download: bytes={}-",
-            resume_position
-        );
-        request = request.header(RANGE, format!("bytes={}-", resume_position));
+        debug!("Adding range header to resume download: bytes={resume_position}-");
+        request = request.header(RANGE, format!("bytes={resume_position}-"));
     }
 
-    debug!("Sending request GET {}", url);
+    debug!("Sending request GET {url}");
     let response = request.send().await?;
-    debug!("Received response {:?}", response);
+    debug!("Received response {response:?}");
 
     // Parse target filename from response
     let filename = String::from(parse_filename(&response)?);
@@ -118,17 +115,17 @@ pub async fn download_file(
     progress_bar.reset_eta();
 
     let file = if resume_position == 0 {
-        debug!("Opening {} in create mode", filename);
+        debug!("Opening {filename} in create mode");
         File::create(filename.clone())
             .await
-            .with_context(|| format!("Failed to create file {}", filename))?
+            .with_context(|| format!("Failed to create file {filename}"))?
     } else {
-        debug!("Opening {} in append mode for resume", filename);
+        debug!("Opening {filename} in append mode for resume");
         OpenOptions::new()
             .append(true)
             .open(filename.clone())
             .await
-            .with_context(|| format!("Failed to open file {} in append mode", filename))?
+            .with_context(|| format!("Failed to open file {filename} in append mode"))?
     };
 
     // TODO Is there an interest in buffering response stream we read from?
@@ -138,17 +135,17 @@ pub async fn download_file(
 
     while let Some(item) = stream.next().await {
         let chunk =
-            item.with_context(|| format!("Failed to download file {} from {}", filename, url))?;
+            item.with_context(|| format!("Failed to download file {filename} from {url}"))?;
         progress_bar.inc(chunk.len() as u64);
         file_writer
             .write_all(&chunk)
             .await
-            .with_context(|| format!("Error writing to file {}", filename))?;
+            .with_context(|| format!("Error writing to file {filename}"))?;
     }
     file_writer
         .flush()
         .await
-        .with_context(|| format!("Error flushing file {}", filename))?;
+        .with_context(|| format!("Error flushing file {filename}"))?;
 
     progress_bar.finish();
     Ok(filename)
@@ -164,7 +161,10 @@ fn parse_filename(response: &Response) -> Result<&str, Error> {
 
     // Deduce filename from last path segment of url
     debug!("Parsing filename from url: {}", response.url());
-    let filename_from_url: Option<&str> = response.url().path_segments().and_then(|s| s.last());
+    let filename_from_url: Option<&str> = response
+        .url()
+        .path_segments()
+        .and_then(|mut s| s.next_back());
     match filename_from_url {
         Some(f) => Ok(f),
         None => Err(anyhow!(
@@ -188,10 +188,7 @@ fn parse_filename_from_content_disposition(response: &Response) -> Result<Option
             content_disposition.unwrap()
         )
     })?;
-    debug!(
-        "Parsing content-disposition header: {}",
-        content_disposition_str
-    );
+    debug!("Parsing content-disposition header: {content_disposition_str}");
 
     // TODO Could not find a nice way to parse content-disposition header in reqwest
     // ContentDisposition exists in header crate, but parsing is currently limited and does not
@@ -200,8 +197,7 @@ fn parse_filename_from_content_disposition(response: &Response) -> Result<Option
     let re_str = r"attachment; filename=(\S+)";
     let re = Regex::new(re_str).with_context(|| {
         format!(
-            "Failed to compile regular expression to parse content-disposition header: {}",
-            re_str
+            "Failed to compile regular expression to parse content-disposition header: {re_str}"
         )
     })?;
 
