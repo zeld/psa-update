@@ -27,10 +27,52 @@ This will interactively ask for vehicle VIN, check for available NAC/RCC/map upd
 
 Once copied to the USB drive, the update can be applied on the car infotainment system following stellantis instructions.
 
-For exemple for Peugeot:
+For example for Peugeot:
 
 - [RCC instructions](https://web.archive.org/web/20220719220945/https://media-ct-ndp.peugeot.com/file/38/2/map-software-rcc-en.632382.pdf)
 - [NAC instructions](https://web.archive.org/web/20230602131011/https://media-ct-ndp.peugeot.com/file/38/0/map-software-nac-en.632380.pdf)
+
+### Advanced usage
+
+The command line executable supports multiple arguments, refer to the help message for more information.
+
+```console
+$ psa-update --help
+CLI alternative to Peugeot/Citroën/Opel/DS update applications for car infotainment system (NAC/RCC firmware and navigation maps), hopefully more robust. Supports for resume of downloads.
+
+Usage: psa-update [OPTIONS] [VIN]
+
+Arguments:
+  [VIN]  Vehicle Identification Number (VIN) to check for update
+
+Options:
+      --map <map>            Sets the map to check for update. Supported maps:
+                              - afr: Africa
+                              - alg: Algeria
+                              - asia: Asia
+                              - eur: Europe
+                              - isr: Israel
+                              - latam: Latin America
+                              - latam-chile: Latin America Chile
+                              - mea: Middle East
+                              - oce: Oceania
+                              - russia: Russia
+                              - taiwan: Taiwan
+      --silent               Sets silent (non-interactive) mode
+      --download             Automatically proceed with download of updates. Previous downloads will be resumed.
+      --extract <extract>    Location where to extract update files. Should be the root of an empty FAT32 USB drive.
+      --sequential-download  Forces sequential download of updates. By default updates are downloaded concurrently.
+  -h, --help                 Print help
+  -V, --version              Print version
+```
+
+A silent (non-interactive) mode can be activated using the `--silent` flag.
+
+For example, to check for updates and automatically download and extract them to a USB drive, you can use the following command:
+
+```shell
+$ psa-update --silent --download --extract /path/to/usb/drive
+```
 
 ## Requirements
 

@@ -29,7 +29,7 @@ async fn main() -> Result<(), Error> {
 
     let matches = Command::new("PSA firmware update.")
         .version(crate_version!())
-        .about("CLI alternative to Peugeot/Citroën/Opel/DS update applications for car infotainment system (NAC/RCC fimrware and navigation maps), hopefully more robust. Supports for resume of downloads.")
+        .about("CLI alternative to Peugeot/Citroën/Opel/DS update applications for car infotainment system (NAC/RCC firmware and navigation maps), hopefully more robust. Supports for resume of downloads.")
         .arg(Arg::new("VIN")
             .help("Vehicle Identification Number (VIN) to check for update")
             .required(false)
@@ -43,7 +43,12 @@ async fn main() -> Result<(), Error> {
             .help("Sets silent (non-interactive) mode")
             .required(false)
             .long("silent")
-            .action(ArgAction::Set))
+            .action(ArgAction::SetTrue))
+        .arg(Arg::new("download")
+            .help("Automatically proceed with download of updates. Previous downloads will be resumed.")
+            .required(false)
+            .long("download")
+            .action(ArgAction::SetTrue))
         .arg(Arg::new("extract")
             .help("Location where to extract update files. Should be the root of an empty FAT32 USB drive.")
             .required(false)
@@ -56,11 +61,13 @@ async fn main() -> Result<(), Error> {
             .action(ArgAction::SetTrue))
         .get_matches();
 
-    let interactive = !matches.contains_id("silent");
+    let interactive = !matches.get_flag("silent");
     let vin = matches.get_one::<String>("VIN").map(|s| s.to_uppercase());
     let vin_provided_as_arg = vin.is_some();
     let map = matches.get_one::<String>("map").map(|s| s.as_str());
-    let sequential_download = matches.get_one::<bool>("sequential-download").unwrap();
+    let download = matches.get_flag("download");
+    let sequential_download = matches.get_flag("sequential-download");
+    let extract_location = matches.get_one::<String>("extract").map(|s| s.as_str());
 
     // Vin not provided on command line, asking interactively
     let vin = if !vin_provided_as_arg && interactive {
@@ -89,8 +96,6 @@ async fn main() -> Result<(), Error> {
         map
     };
 
-    let extract_location = matches.get_one::<String>("extract").map(|s| s.as_str());
-
     // TODO investigate compression such as gzip for faster download
     let update_response = psa::request_available_updates(&client, &vin, map).await?;
 
@@ -114,7 +119,7 @@ async fn main() -> Result<(), Error> {
             // An empty update can be sent by the server when there is no available update
             if !update.update_id.is_empty() {
                 psa::print(&software, update);
-                if !interactive || interact::confirm("Download update?")? {
+                if download || (interactive && interact::confirm("Download update?")?) {
                     selected_updates.push(update.clone());
                     let update_size = match update.update_size.parse() {
                         Ok(size) => size,
@@ -130,7 +135,7 @@ async fn main() -> Result<(), Error> {
     }
 
     if selected_updates.is_empty() {
-        println!("No update to download");
+        println!("No update selected for download");
         return Ok(());
     }
 
@@ -150,7 +155,7 @@ async fn main() -> Result<(), Error> {
 
     let multi_progress = MultiProgress::new();
 
-    let downloaded_updates: Vec<psa::DownloadedUpdate> = if *sequential_download {
+    let downloaded_updates: Vec<psa::DownloadedUpdate> = if sequential_download {
         // Download sequentially
         let mut result: Vec<psa::DownloadedUpdate> = Vec::new();
         for update in selected_updates {
@@ -198,7 +203,7 @@ async fn main() -> Result<(), Error> {
                     .context("Failed to extract update")?;
             }
             println!(
-                "The update can be applied on the car infotainment system following stellantis instructions."
+                "The update can be applied on the car infotainment system following vendor instructions."
             );
             if is_nac {
                 println!(
