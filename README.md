@@ -81,7 +81,8 @@ For the transfer of updates to the car, a USB flash drive is required:
 - Recommended size is **32 GB**. Although most updates are smaller than 16 GB, some navigations maps can be larger than 16 GB.
 - It must be formatted as **FAT32** and **empty**.
 
-> Note: When using Windows, if the USB flash drive is larger than 32 GB, it is not possible to format it using FAT32. Alternatives are:
+> [!NOTE] 
+> When using Windows, if the USB flash drive is larger than 32 GB, it is not possible to format it using FAT32. Alternatives are:
 >
 > - Create a 32 GB partition and format if as FAT32 and leave the rest unformatted.
 > - Use a third-party tool to format the USB flash drive using FAT32. The official vendor application presumably uses [fat32format from Ridgecrop Consultants Ltd](http://ridgecrop.co.uk/index.htm?guiformat.htm) to achieve this.
@@ -106,6 +107,17 @@ $ cd psa-update
 $ cargo build --release
 $ ./target/release/psa-update --version
 ```
+
+## Other tools
+
+The table below quickly compares `psa-update` with other available tools I'm aware of:
+
+| Tool                                                                                        | Type        | Platform                | Language | Download updates | Format USB drive | Extract to USB Drive |
+| ------------------------------------------------------------------------------------------- | ----------- | ----------------------- | -------- | ---------------- | ---------------- | -------------------- |
+| Official (Peugeot Update, Citroën Update, Opel Update, DS Update)                           | Desktop app | Windows / MacOS         | Multi    | ✅ (with resume) | ✅              | ✅                   |
+| [psa-update](https://github.com/zeld/psa-update)                                            | Terminal    | Windows / Linux / MacOS | English  | ✅ (with resume) | ❌              | ✅                   |
+| [Peugeot Update alternative](https://github.com/bagou9/Peugeot-Update-logiciel-alternatif/) | Desktop app | Windows                 | French   | ✅ (with resume) | ❌              | ✅                   |
+| [peugeot-tools](https://github.com/sbz/peugeot-tools)                                       | Terminal    | ?                       | English  | ✅ (with resume) | ❌              | ❌                   |
 
 ## Proxy
 
