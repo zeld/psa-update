@@ -112,11 +112,11 @@ $ ./target/release/psa-update --version
 
 The table below quickly compares `psa-update` with other available tools I'm aware of:
 
-| Tool                                                                                        | Type        | Platform                | Language | Download updates | Format USB drive | Extract to USB Drive |
+| Tool                                                                                        | Type        | Platform                | Language | Download updates | Format USB drive | Extract to USB drive |
 | ------------------------------------------------------------------------------------------- | ----------- | ----------------------- | -------- | ---------------- | ---------------- | -------------------- |
 | Official (Peugeot Update, Citroën Update, Opel Update, DS Update)                           | Desktop app | Windows / MacOS         | Multi    | ✅ (with resume) | ✅              | ✅                   |
 | [psa-update](https://github.com/zeld/psa-update)                                            | Terminal    | Windows / Linux / MacOS | English  | ✅ (with resume) | ❌              | ✅                   |
-| [Peugeot Update alternative](https://github.com/bagou9/Peugeot-Update-logiciel-alternatif/) | Desktop app | Windows                 | French   | ✅ (with resume) | ❌              | ✅                   |
+| [Peugeot Update alternative](https://github.com/bagou9/Peugeot-Update-logiciel-alternatif/) | Desktop app | Windows                 | French   | ✅ (with resume) | ❌              | ❌                   |
 | [peugeot-tools](https://github.com/sbz/peugeot-tools)                                       | Terminal    | ?                       | English  | ✅ (with resume) | ❌              | ❌                   |
 
 ## Proxy
