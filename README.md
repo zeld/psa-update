@@ -110,14 +110,22 @@ $ ./target/release/psa-update --version
 
 ## Other tools
 
-The table below quickly compares `psa-update` with other available tools I'm aware of:
+The table below quickly compares `psa-update` with other available tools I'm aware of.
+
+Open source:
+
+| Tool                                                                                        | Type        | Platform                | Language | Download updates | Format USB drive | Extract to USB drive |
+| ------------------------------------------------------------------------------------------- | ----------- | ----------------------- | -------- | ---------------- | ---------------- | -------------------- |
+| [psa-update](https://github.com/zeld/psa-update)                                            | Terminal    | Windows / Linux / MacOS | English  | ✅ (with resume) | ❌              | ✅                   |
+| [peugeot-tools](https://github.com/sbz/peugeot-tools)                                       | Terminal    | ? (build from source)   | English  | ✅ (with resume) | ❌              | ❌                   |
+
+Others:
 
 | Tool                                                                                        | Type        | Platform                | Language | Download updates | Format USB drive | Extract to USB drive |
 | ------------------------------------------------------------------------------------------- | ----------- | ----------------------- | -------- | ---------------- | ---------------- | -------------------- |
 | Official (Peugeot Update, Citroën Update, Opel Update, DS Update)                           | Desktop app | Windows / MacOS         | Multi    | ✅ (with resume) | ✅              | ✅                   |
-| [psa-update](https://github.com/zeld/psa-update)                                            | Terminal    | Windows / Linux / MacOS | English  | ✅ (with resume) | ❌              | ✅                   |
 | [Peugeot Update alternative](https://github.com/bagou9/Peugeot-Update-logiciel-alternatif/) | Desktop app | Windows                 | French   | ✅ (with resume) | ❌              | ❌                   |
-| [peugeot-tools](https://github.com/sbz/peugeot-tools)                                       | Terminal    | ?                       | English  | ✅ (with resume) | ❌              | ❌                   |
+| [Mittns Toolbox](https://www.mittns.de/thread/428-mittns-toolbox-2-5-0-4-download)          | Desktop app | Windows                 | Multi    | ✅               | ✅              | ✅                   |
 
 ## Proxy
 
