@@ -1078,7 +1078,7 @@ dependencies = [
 
 [[package]]
 name = "psa-update"
-version = "1.0.8"
+version = "1.0.9"
 dependencies = [
  "anyhow",
  "clap",
