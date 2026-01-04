@@ -80,7 +80,9 @@ async fn main() -> Result<(), Error> {
     }
     let vin = vin.unwrap();
 
+    // Client with dummy user agent to make cloudfront proxy happy when downloading firmware files
     let client = Client::builder()
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36")
         .build()
         .context("Failed to create HTTP client")?;
     let device_info = psa::request_device_information(&client, &vin).await?;
@@ -141,15 +143,15 @@ async fn main() -> Result<(), Error> {
 
     // Check available disk size
     let disk_space = disk::get_current_dir_available_space();
-    if let Some(space) = disk_space {
-        if space < total_update_size {
-            interact::warn(&format!(
-                "Not enough space on disk to proceed with download. Available disk space in current directory: {}",
-                DecimalBytes(space)
-            ));
-            if interactive && !(interact::confirm("Continue anyway?")?) {
-                return Ok(());
-            }
+    if let Some(space) = disk_space
+        && space < total_update_size
+    {
+        interact::warn(&format!(
+            "Not enough space on disk to proceed with download. Available disk space in current directory: {}",
+            DecimalBytes(space)
+        ));
+        if interactive && !(interact::confirm("Continue anyway?")?) {
+            return Ok(());
         }
     }
 

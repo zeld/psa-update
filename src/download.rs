@@ -31,6 +31,13 @@ pub async fn request_file_download_info(
     let head_response = client.get(url).send().await?;
     debug!("Received response {head_response:?}");
 
+    if head_response.status() != 200 {
+        return Err(anyhow!(
+            "Failed to fetch file information, got status {}.",
+            head_response.status()
+        ));
+    }
+
     // Parse target filename from response
     let filename = String::from(parse_filename(&head_response)?);
     let filesize = head_response.content_length().unwrap_or(0);
@@ -89,6 +96,13 @@ pub async fn download_file(
     debug!("Sending request GET {url}");
     let response = request.send().await?;
     debug!("Received response {response:?}");
+
+    if !response.status().is_success() {
+        return Err(anyhow!(
+            "Failed to download file, got status {}.",
+            response.status()
+        ));
+    }
 
     // Parse target filename from response
     let filename = String::from(parse_filename(&response)?);

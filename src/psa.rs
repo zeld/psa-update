@@ -272,13 +272,14 @@ pub async fn request_available_updates(
     // - ovip-int-firmware-version: Firmware update for Continental NAC (Navigation Audio Connectée)
     // - aio-firmware: Firmware update for Continental NAC AIO (All In One) - Used outside Europe (South America)
     // - for NAC maps: map-afr, map-alg, map-asia, map-eur, map-isr, map-latam, map-latam-chile, map-mea, map-oce, map-russia, map-taiwan
-    let body = if map.is_none() {
+    let body = if let Some(map_name) = map {
         serde_json::json!({
             "vin": vin,
             "softwareTypes": [
                 { "softwareType": "ovip-int-firmware-version" },
                 { "softwareType": "rcc-firmware" },
                 { "softwareType": "aio-firmware" },
+                { "softwareType": format!("map-{}", map_name) }
             ]
         })
     } else {
@@ -288,7 +289,6 @@ pub async fn request_available_updates(
                 { "softwareType": "ovip-int-firmware-version" },
                 { "softwareType": "rcc-firmware" },
                 { "softwareType": "aio-firmware" },
-                { "softwareType": format!("map-{}", map.unwrap()) }
             ]
         })
     };
