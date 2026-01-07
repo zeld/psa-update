@@ -14,24 +14,11 @@ jobs:
   create-release:
     name: create-release
     runs-on: ubuntu-latest
-    # Outputs are required for upload of release artifacts
-    outputs:
-      upload_url: ${{ steps.release.outputs.upload_url }}
-      release_version: ${{ env.RELEASE_VERSION }}
     steps:
-      - name: Get the release version from the tag
-        shell: bash
-        run: |
-          echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-          echo "release version is: ${{ env.RELEASE_VERSION }}"
-      - name: Create GitHub release
-        id: release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ env.RELEASE_VERSION }}
-          release_name: ${{ env.RELEASE_VERSION }}
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Release
+        uses: softprops/action-gh-release@v2
 
   build-release:
     name: Build release
@@ -86,9 +73,7 @@ jobs:
           echo "ASSET_CSUM_PATH=$package.tar.gz.sha256" >> $GITHUB_ENV
         fi
     - name: Upload release archive
-      uses: softprops/action-gh-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
       with:
         files: |
           ${{ env.ASSET_PATH }}
