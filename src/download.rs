@@ -6,8 +6,6 @@ use log::debug;
 
 use anyhow::{Context, Error, Result, anyhow};
 
-use regex::{Match, Regex};
-
 use reqwest::header::{ACCEPT_RANGES, RANGE};
 use reqwest::{Client, Response};
 
@@ -142,7 +140,6 @@ pub async fn download_file(
             .with_context(|| format!("Failed to open file {filename} in append mode"))?
     };
 
-    // TODO Is there an interest in buffering response stream we read from?
     let mut stream = response.bytes_stream();
 
     let mut file_writer = BufWriter::new(file);
@@ -204,26 +201,24 @@ fn parse_filename_from_content_disposition(response: &Response) -> Result<Option
     })?;
     debug!("Parsing content-disposition header: {content_disposition_str}");
 
-    // TODO Could not find a nice way to parse content-disposition header in reqwest
-    // ContentDisposition exists in header crate, but parsing is currently limited and does not
-    // support for filename. See: https://github.com/hyperium/headers/issues/8
-    // Workaround: use an ugly regexp
-    let re_str = r"attachment; filename=(\S+)";
-    let re = Regex::new(re_str).with_context(|| {
-        format!(
-            "Failed to compile regular expression to parse content-disposition header: {re_str}"
-        )
-    })?;
-
-    let re_match: Option<Match> = re.captures(content_disposition_str).and_then(|c| c.get(1));
-
-    let filename: Option<&str> = re_match.map(|m| m.as_str());
-
-    match filename {
-        Some(x) => Ok(Some(x)),
-        None => Err(anyhow!(
-            "Failed to parse content-disposition header: {}",
-            content_disposition_str
-        )),
+    // Parse filename parameter, handling both quoted and unquoted values
+    // Example headers:
+    // - content-disposition: attachment; filename="example.txt"
+    // - content-disposition: attachment; filename=example.txt
+    // Note: filename* (RFC 5987 encoded) is not handled here
+    for part in content_disposition_str.split(';') {
+        let part = part.trim();
+        if let Some(value) = part.strip_prefix("filename=") {
+            // Remove surrounding quotes if present
+            let filename = value.trim_matches('"').trim();
+            if !filename.is_empty() {
+                return Ok(Some(filename));
+            }
+        }
     }
+
+    Err(anyhow!(
+        "No filename found in content-disposition header: {}",
+        content_disposition_str
+    ))
 }

@@ -1,6 +1,6 @@
 [package]
 name = "psa-update"
-version = "1.0.9"
+version = "1.0.10"
 edition = "2024"
 
 [dependencies]
@@ -20,10 +20,8 @@ env_logger = "0.11"
 anyhow = "1.0"
 
 console = "0.16"
-dialoguer = "0.11"
+dialoguer = "0.12"
 indicatif = "0.18"
-
-regex = "1"
 
 tar = "0.4"
 

@@ -98,7 +98,6 @@ async fn main() -> Result<(), Error> {
         map
     };
 
-    // TODO investigate compression such as gzip for faster download
     let update_response = psa::request_available_updates(&client, &vin, map).await?;
 
     if update_response.software.is_none() {

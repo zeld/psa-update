@@ -359,7 +359,7 @@ pub fn extract_update(update: &DownloadedUpdate, destination_path: &Path) -> Res
         destination_path.to_string_lossy()
     );
 
-    if update.license_filename.is_some() {
+    if let Some(license_filename) = &update.license_filename {
         debug!("Copying licence file");
         let licence_destination_path = destination_path.join("license");
         fs::create_dir(&licence_destination_path).with_context(|| {
@@ -368,12 +368,8 @@ pub fn extract_update(update: &DownloadedUpdate, destination_path: &Path) -> Res
                 licence_destination_path.to_string_lossy()
             )
         })?;
-        let licence_destination =
-            licence_destination_path.join(update.license_filename.as_ref().unwrap());
-        fs::copy(
-            update.license_filename.as_ref().unwrap(),
-            licence_destination,
-        )?;
+        let licence_destination = licence_destination_path.join(license_filename);
+        fs::copy(license_filename, licence_destination)?;
     }
 
     debug!("Extracting update");
