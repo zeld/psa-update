@@ -34,7 +34,7 @@ jobs:
           target: aarch64-apple-darwin
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v6
     - name: Build
       run: cargo build --verbose --target=${{ matrix.target }}
     - name: Run tests
