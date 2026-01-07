@@ -25,7 +25,7 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
     outputs:
-      version: ${{ env.RELEASE_VERSION }}
+      release_version: ${{ env.RELEASE_VERSION }}
 
   build-release:
     name: Build release
