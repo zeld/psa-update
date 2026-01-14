@@ -232,6 +232,8 @@ pub async fn request_device_information(
 
     debug!("Sending request {request:?}");
     let response = client.execute(request).await?;
+    debug!("Received response {response:?}");
+
     if response.status() == 400 {
         return Err(anyhow!(
             "Failed to retrieve device information, make sure the VIN {} is correct.",
@@ -250,8 +252,6 @@ pub async fn request_device_information(
             response.status()
         ));
     }
-
-    debug!("Received response {response:?}");
 
     let response_text = response.text().await?;
     debug!("Received response body {response_text}");
@@ -304,7 +304,6 @@ pub async fn request_available_updates(
 
     debug!("Sending request {request:?} with body {body:?}");
     let response = client.execute(request).await?;
-
     debug!("Received response {response:?}");
 
     if response.status().is_server_error() {
