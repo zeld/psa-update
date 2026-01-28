@@ -4,7 +4,9 @@ version = "1.0.10"
 edition = "2024"
 
 [dependencies]
-reqwest = { version = "0.13", features = ["json", "stream", "gzip"] }
+# Forcing native-tls to be more lenient with servers that don't properly close connections
+# With psa server, facing error with rustls: peer closed connection without sending TLS close_notify: https://docs.rs/rustls/latest/rustls/manual/_03_howto/index.html#unexpected-eof
+reqwest = { version = "0.13", features = ["json", "stream", "native-tls"] }
 futures = "0.3"
 futures-util = "0.3"
 tokio = { version = "1", features = ["full"] }
