@@ -33,20 +33,28 @@ pub fn print_disks(required_space: u64) {
         };
 
         // List files on disk to determine if it's empty
-        let disk_files = fs::read_dir(disk.mount_point()).unwrap();
-        // Ignore System Volume Information folder presence on Windows as it is created by the OS automatically
-        let filtered_files = disk_files.filter(|f| {
-            if let Ok(file) = f
-                && let Some(name) = file.file_name().to_str()
-            {
-                return name != "System Volume Information";
+        let disk_files = fs::read_dir(disk.mount_point());
+        let empty_styled = match disk_files {
+            Ok(files) => {
+                // Ignore System Volume Information folder presence on Windows as it is created by the OS automatically
+                let filtered_files = files.filter(|f| {
+                    if let Ok(file) = f
+                        && let Some(name) = file.file_name().to_str()
+                    {
+                        return name != "System Volume Information";
+                    }
+                    true
+                });
+                if filtered_files.count() == 0 {
+                    green.apply_to("Yes")
+                } else {
+                    red.apply_to("No")
+                }
             }
-            true
-        });
-        let empty_styled = if filtered_files.count() == 0 {
-            green.apply_to("Yes")
-        } else {
-            red.apply_to("No")
+            Err(e) => {
+                debug!("Failed to list files: {e}");
+                red.apply_to("N/A")
+            }
         };
 
         let available_space = disk.available_space();
