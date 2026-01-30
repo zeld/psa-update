@@ -50,7 +50,7 @@ async fn main() -> Result<(), Error> {
             .long("download")
             .action(ArgAction::SetTrue))
         .arg(Arg::new("extract")
-            .help("Location where to extract update files. Should be the root of an empty FAT32 USB drive.")
+            .help("Full path to location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32)")
             .required(false)
             .long("extract")
             .action(ArgAction::Set))
@@ -80,8 +80,8 @@ async fn main() -> Result<(), Error> {
     }
     let vin = vin.unwrap();
 
-    // Client with dummy user agent to make cloudfront proxy happy when downloading firmware files
     let client = Client::builder()
+        // Dummy user agent to make cloudfront proxy happy when downloading firmware files
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36")
         .build()
         .context("Failed to create HTTP client")?;
@@ -180,10 +180,10 @@ async fn main() -> Result<(), Error> {
         }
 
         // Listing available disks for extraction
-        // TODO check destination available space.
-        disk::print_disks();
+        // Since TARs are not compressed, their extracted size is roughly the same as the update size
+        disk::print_disks(total_update_size);
         let location = interact::prompt(
-            "Location where to extract the update files (IMPORTANT: Should be the root of an EMPTY USB device formatted as FAT32)",
+            "Enter the full path to the USB drive root (e.g., D:\\ on Windows, /media/usb on Linux) - Must be EMPTY and formatted as FAT32",
         )?;
         if !location.is_empty() {
             extract_location = Some(location);
@@ -219,6 +219,11 @@ async fn main() -> Result<(), Error> {
         None => {
             println!("No location, skipping extraction");
         }
+    }
+
+    if interactive {
+        // Press Enter to exit
+        let _ = interact::prompt("Press Enter to exit");
     }
 
     Ok(())
