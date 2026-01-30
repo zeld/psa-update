@@ -221,10 +221,5 @@ async fn main() -> Result<(), Error> {
         }
     }
 
-    if interactive {
-        // Press Enter to exit
-        let _ = interact::prompt("Press Enter to exit");
-    }
-
     Ok(())
 }
