@@ -1,8 +1,10 @@
+use anyhow::{Error, Result};
+
 use console::style;
 
 use dialoguer::{Confirm, Input, Select};
 
-use anyhow::{Error, Result};
+use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::psa;
 
@@ -32,4 +34,16 @@ pub fn select_map() -> Result<Option<&'static str>, Error> {
 
 pub fn warn(message: &str) {
     println!("{} {}", style("[warning]").yellow(), message);
+}
+
+pub fn progress_bar(size: u64) -> indicatif::ProgressBar {
+    let progress_bar = ProgressBar::new(size);
+    progress_bar.set_style(
+        ProgressStyle::with_template(
+            "{percent:>3}% [{bar}] {bytes_per_sec:<12} ETA={eta:<3} {wide_msg:.cyan}",
+        )
+        .unwrap()
+        .progress_chars("#>-"),
+    );
+    progress_bar
 }

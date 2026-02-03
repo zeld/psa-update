@@ -11,7 +11,9 @@ use reqwest::{Client, Response};
 
 use futures_util::StreamExt;
 
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use indicatif::MultiProgress;
+
+use crate::interact;
 
 pub struct FileDownloadInfo {
     pub filename: String,
@@ -112,15 +114,7 @@ pub async fn download_file(
         remaining_content_length
     };
 
-    let progress_bar = multi_progress.add(ProgressBar::new(total_content_length));
-    progress_bar.set_style(
-        ProgressStyle::with_template(
-            "{percent:>3}% [{bar}] {bytes_per_sec:<12} ETA={eta:<3} {wide_msg:.cyan}",
-        )
-        .unwrap()
-        .progress_chars("#>-"),
-    );
-
+    let progress_bar = multi_progress.add(interact::progress_bar(total_content_length));
     progress_bar.set_message(filename.to_string()); // Triggers first draw
     progress_bar.set_position(resume_position);
     // Need to reset ETA in case of resume, otherwise estimations are biased

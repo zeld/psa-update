@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::vec::Vec;
 
-use futures::future::try_join_all;
+use futures_util::future::try_join_all;
 
 use anyhow::{Context, Error, Result, anyhow};
 

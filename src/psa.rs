@@ -16,6 +16,7 @@ use indicatif::{DecimalBytes, MultiProgress};
 use tar::Archive;
 
 use crate::download;
+use crate::interact;
 
 // URL to query vehicle device: NAC or RCC
 const DEVICE_URL: &str = "https://api.groupe-psa.com/applications/majesticf/v1/devices/{VIN}?client_id=20a4cf7c-f5fb-41d5-9175-a6e23b9880e5";
@@ -354,7 +355,7 @@ pub async fn download_update(
 // Extract firmware update to specified location
 pub fn extract_update(update: &DownloadedUpdate, destination_path: &Path) -> Result<(), Error> {
     println!(
-        "Extracting update to {}",
+        "Extracting update to {}...",
         destination_path.to_string_lossy()
     );
 
@@ -371,14 +372,24 @@ pub fn extract_update(update: &DownloadedUpdate, destination_path: &Path) -> Res
         fs::copy(license_filename, licence_destination)?;
     }
 
-    debug!("Extracting update");
-    let mut ar = Archive::new(
-        File::open(&update.update_filename)
-            .with_context(|| format!("Failed to open firmware {}", update.update_filename))?,
-    );
+    debug!("Extracting tar file");
+    let tar_file = File::open(&update.update_filename)
+        .with_context(|| format!("Failed to open firmware {}", update.update_filename))?;
+    let tar_file_size = tar_file
+        .metadata()
+        .context("Failed to get tar file metadata")?
+        .len();
+
+    let progress_bar = interact::progress_bar(tar_file_size);
+    progress_bar.set_message(update.update_filename.to_string()); // Triggers first draw
+    // wrap tar file in a progress reader
+    let mut progress_reader = progress_bar.wrap_read(tar_file);
+
+    // extract tar archive
+    let mut ar = Archive::new(&mut progress_reader);
     ar.unpack(destination_path).with_context(|| {
         format!(
-            "Failed to extract update {} to {} ",
+            "Failed to extract tar {} to {} ",
             update.update_filename,
             destination_path.to_string_lossy()
         )
