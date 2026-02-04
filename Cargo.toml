@@ -26,4 +26,4 @@ indicatif = "0.18"
 
 tar = "0.4"
 
-sysinfo = "0.37"
+sysinfo = "0.38"
