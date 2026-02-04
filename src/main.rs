@@ -7,6 +7,8 @@ use anyhow::{Context, Error, Result, anyhow};
 
 use clap::{Arg, ArgAction, Command, crate_version};
 
+use console::style;
+
 use log::debug;
 
 use reqwest::Client;
@@ -98,7 +100,10 @@ async fn main() -> Result<(), Error> {
         map
     };
 
-    println!("\n=== Step 1: Checking for available updates ===\n");
+    println!(
+        "\n{}\n",
+        style("=== Step 1: Checking for available updates ===").cyan()
+    );
     let update_response = psa::request_available_updates(&client, &vin, map).await?;
 
     if update_response.software.is_none() {
@@ -141,7 +146,10 @@ async fn main() -> Result<(), Error> {
         return Ok(());
     }
 
-    println!("\n=== Step 2: Downloading updates ===\n");
+    println!(
+        "\n{}\n",
+        style("=== Step 2: Downloading updates ===").cyan()
+    );
 
     // Check available disk size
     let disk_space = disk::get_current_dir_available_space();
@@ -176,7 +184,10 @@ async fn main() -> Result<(), Error> {
 
     let mut extract_location = extract_location.map(str::to_string);
     if interactive && extract_location.is_none() {
-        println!("\n=== Step 3: Extracting updates to USB ===\n");
+        println!(
+            "\n{}\n",
+            style("=== Step 3: Extracting updates to USB ===").cyan()
+        );
         if !interact::confirm(
             "To proceed to extraction of update(s), please insert an empty USB disk formatted as FAT32. Continue?",
         )? {
@@ -207,14 +218,14 @@ async fn main() -> Result<(), Error> {
             }
             for update in downloaded_updates {
                 println!(
-                    "Extracting update to {}...",
+                    "\nExtracting update to {}...",
                     destination_path.to_string_lossy()
                 );
                 psa::extract_update(&update, destination_path)
                     .context("Failed to extract update")?;
             }
             println!(
-                "Extraction complete. The update can be applied on the car infotainment system:"
+                "\n\nExtraction complete. The update can be applied on the car infotainment system:"
             );
             println!(" - Start the car and keep the engine running");
             println!(" - Insert the USB drive into the car USB port");
@@ -223,11 +234,11 @@ async fn main() -> Result<(), Error> {
             );
             if is_nac {
                 println!(
-                    "For more details, refer to vendor instructions. For example, for Peugeot NAC: https://web.archive.org/web/20220719220945/https://media-ct-ndp.peugeot.com/file/38/2/map-software-rcc-en.632382.pdf"
+                    "\nFor more details, refer to vendor instructions. For example, for Peugeot NAC: https://web.archive.org/web/20220719220945/https://media-ct-ndp.peugeot.com/file/38/2/map-software-rcc-en.632382.pdf"
                 );
             } else {
                 println!(
-                    "For more details, refer to vendor instructions. For example, for Peugeot RCC: https://web.archive.org/web/20230602131011/https://media-ct-ndp.peugeot.com/file/38/0/map-software-nac-en.632380.pdf"
+                    "\nFor more details, refer to vendor instructions. For example, for Peugeot RCC: https://web.archive.org/web/20230602131011/https://media-ct-ndp.peugeot.com/file/38/0/map-software-nac-en.632380.pdf"
                 );
             }
         }

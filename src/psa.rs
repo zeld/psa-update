@@ -1,5 +1,6 @@
 use std::fs;
 use std::fs::File;
+use std::io::BufReader;
 use std::path::Path;
 use std::str;
 
@@ -377,10 +378,12 @@ pub fn extract_update(update: &DownloadedUpdate, destination_path: &Path) -> Res
 
     let progress_bar = interact::progress_bar(tar_file_size);
     progress_bar.set_message(update.update_filename.to_string()); // Triggers first draw
-    // wrap tar file in a progress reader
-    let mut progress_reader = progress_bar.wrap_read(tar_file);
 
-    // extract tar archive
+    // Use larger buffer (1MB) for reading tar file
+    let buffered_reader = BufReader::with_capacity(1024 * 1024, tar_file);
+    let mut progress_reader = progress_bar.wrap_read(buffered_reader);
+
+    // Extract tar archive
     let mut ar = Archive::new(&mut progress_reader);
     ar.unpack(destination_path).with_context(|| {
         format!(
@@ -389,5 +392,7 @@ pub fn extract_update(update: &DownloadedUpdate, destination_path: &Path) -> Res
             destination_path.to_string_lossy()
         )
     })?;
+    progress_bar.finish();
+
     Ok(())
 }
