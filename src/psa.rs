@@ -354,11 +354,6 @@ pub async fn download_update(
 
 // Extract firmware update to specified location
 pub fn extract_update(update: &DownloadedUpdate, destination_path: &Path) -> Result<(), Error> {
-    println!(
-        "Extracting update to {}...",
-        destination_path.to_string_lossy()
-    );
-
     if let Some(license_filename) = &update.license_filename {
         debug!("Copying licence file");
         let licence_destination_path = destination_path.join("license");

@@ -206,19 +206,28 @@ async fn main() -> Result<(), Error> {
                 ));
             }
             for update in downloaded_updates {
+                println!(
+                    "Extracting update to {}...",
+                    destination_path.to_string_lossy()
+                );
                 psa::extract_update(&update, destination_path)
                     .context("Failed to extract update")?;
             }
             println!(
-                "The update can be applied on the car infotainment system following vendor instructions."
+                "Extraction complete. The update can be applied on the car infotainment system:"
+            );
+            println!(" - Start the car and keep the engine running");
+            println!(" - Insert the USB drive into the car USB port");
+            println!(
+                " - Follow the on-screen instructions. Update can take up to 30 minutes depending on the update size"
             );
             if is_nac {
                 println!(
-                    "For example, for Peugeot NAC: https://web.archive.org/web/20220719220945/https://media-ct-ndp.peugeot.com/file/38/2/map-software-rcc-en.632382.pdf"
+                    "For more details, refer to vendor instructions. For example, for Peugeot NAC: https://web.archive.org/web/20220719220945/https://media-ct-ndp.peugeot.com/file/38/2/map-software-rcc-en.632382.pdf"
                 );
             } else {
                 println!(
-                    "For example, for Peugeot RCC: https://web.archive.org/web/20230602131011/https://media-ct-ndp.peugeot.com/file/38/0/map-software-nac-en.632380.pdf"
+                    "For more details, refer to vendor instructions. For example, for Peugeot RCC: https://web.archive.org/web/20230602131011/https://media-ct-ndp.peugeot.com/file/38/0/map-software-nac-en.632380.pdf"
                 );
             }
         }
