@@ -11,9 +11,10 @@ use log::debug;
 // Print disks list as a table
 pub fn print_disks(required_space: u64) {
     println!(
-        "{0: ^20} | {1: ^30} | {2: ^6} | {3: ^9} | {4: ^10} | {5: ^5} ",
-        "Name", "Path", "Type", "Removable", "Avail.", "Empty"
+        "{0: <20} | {1: <35} | {2: <6} | {3: <5} | {4: >10} | {5: <5}",
+        "Name", "Path", "Type", "USB", "Space", "Empty"
     );
+    println!("{}", "-".repeat(95));
     let red = Style::new().red();
     let green = Style::new().green();
     let disks = Disks::new_with_refreshed_list();
@@ -65,7 +66,7 @@ pub fn print_disks(required_space: u64) {
         };
 
         println!(
-            "{0: <20} | {1: <30} | {2: <6} | {3: <9} | {4: >10} | {5: <5}",
+            "{0: <20} | {1: <35} | {2: <6} | {3: <5} | {4: >10} | {5: <5}",
             disk.name().to_string_lossy(),
             disk.mount_point().to_string_lossy(),
             file_system_styled,

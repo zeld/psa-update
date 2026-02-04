@@ -98,6 +98,7 @@ async fn main() -> Result<(), Error> {
         map
     };
 
+    println!("\n=== Step 1: Checking for available updates ===\n");
     let update_response = psa::request_available_updates(&client, &vin, map).await?;
 
     if update_response.software.is_none() {
@@ -140,6 +141,8 @@ async fn main() -> Result<(), Error> {
         return Ok(());
     }
 
+    println!("\n=== Step 2: Downloading updates ===\n");
+
     // Check available disk size
     let disk_space = disk::get_current_dir_available_space();
     if let Some(space) = disk_space
@@ -173,6 +176,7 @@ async fn main() -> Result<(), Error> {
 
     let mut extract_location = extract_location.map(str::to_string);
     if interactive && extract_location.is_none() {
+        println!("\n=== Step 3: Extracting updates to USB ===\n");
         if !interact::confirm(
             "To proceed to extraction of update(s), please insert an empty USB disk formatted as FAT32. Continue?",
         )? {
@@ -181,9 +185,11 @@ async fn main() -> Result<(), Error> {
 
         // Listing available disks for extraction
         // Since TARs are not compressed, their extracted size is roughly the same as the update size
+        println!();
         disk::print_disks(total_update_size);
+        println!();
         let location = interact::prompt(
-            "Enter the full path to the USB drive root (e.g., D:\\ on Windows, /media/usb on Linux) - Must be EMPTY and formatted as FAT32",
+            "Enter the full path to the USB drive root (e.g., D:\\ on Windows, /Volumes/USB on macOS, /media/usb on Linux) - Must be empty and formatted as FAT32",
         )?;
         if !location.is_empty() {
             extract_location = Some(location);
