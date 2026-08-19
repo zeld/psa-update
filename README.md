@@ -83,6 +83,29 @@ For example, to check for updates and automatically download and extract them on
 $ psa-update --silent --download --extract /path/to/usb/drive
 ```
 
+After extraction, the layout of the USB drive should look like this:
+
+* RCC update:
+  ```text
+  license
+    └── license_xxxxxxxxxxxxxxxxxxxx.key
+  rcc_update
+    └──  update files...
+  ```
+
+  * NAC update:
+  ```text
+  license
+    └── license_xxxxxxxxxxxxxxxxxxxx.key
+  nac_update
+    └──  update files...
+  ```
+  * NAC map update:
+  ```text
+  map_update
+    └──  update files...
+  ```
+
 ## Requirements
 
 To transfer updates to the car, a USB flash drive is required:

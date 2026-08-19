@@ -279,7 +279,13 @@ pub async fn request_available_updates(
             "vin": vin,
             "softwareTypes": [
                 { "softwareType": "ovip-int-firmware-version" },
+                { "softwareType": "ovip-int-firmware-nac-dpca" },
+                { "softwareType": "ovip-int-firmware-nac-capsa" },
+                { "softwareType": "ovip-int-firmware-nac-aio-latam" },
                 { "softwareType": "rcc-firmware" },
+                { "softwareType": "ovip-int-firmware-rcc-dpca" },
+                { "softwareType": "ovip-int-firmware-rcc-capsa" },
+                { "softwareType": "ovip-int-firmware-rcc-aio-latam" },
                 { "softwareType": "aio-firmware" },
                 { "softwareType": format!("map-{}", map_name) }
             ]
@@ -289,7 +295,13 @@ pub async fn request_available_updates(
             "vin": vin,
             "softwareTypes": [
                 { "softwareType": "ovip-int-firmware-version" },
+                { "softwareType": "ovip-int-firmware-nac-dpca" },
+                { "softwareType": "ovip-int-firmware-nac-capsa" },
+                { "softwareType": "ovip-int-firmware-nac-aio-latam" },
                 { "softwareType": "rcc-firmware" },
+                { "softwareType": "ovip-int-firmware-rcc-dpca" },
+                { "softwareType": "ovip-int-firmware-rcc-capsa" },
+                { "softwareType": "ovip-int-firmware-rcc-aio-latam" },
                 { "softwareType": "aio-firmware" },
             ]
         })
