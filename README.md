@@ -93,14 +93,15 @@ After extraction, the layout of the USB drive should look like this:
     └──  update files...
   ```
 
-  * NAC update:
+* NAC update:
   ```text
   license
     └── license_xxxxxxxxxxxxxxxxxxxx.key
   nac_update
     └──  update files...
   ```
-  * NAC map update:
+
+* NAC map update:
   ```text
   map_update
     └──  update files...
