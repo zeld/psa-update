@@ -1,6 +1,6 @@
 [package]
 name = "psa-update"
-version = "1.0.12"
+version = "1.0.13"
 edition = "2024"
 
 [dependencies]
@@ -26,4 +26,4 @@ indicatif = "0.18"
 
 tar = "0.4"
 
-sysinfo = "0.38"
+sysinfo = "0.39"
