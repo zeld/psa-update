@@ -1,6 +1,6 @@
 [package]
 name = "psa-update"
-version = "1.0.13"
+version = "1.0.14"
 edition = "2024"
 
 [dependencies]

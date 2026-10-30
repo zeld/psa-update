@@ -33,7 +33,7 @@ pub async fn request_file_download_info(
 
     if head_response.status() != 200 {
         return Err(anyhow!(
-            "Failed to fetch file information, got status {}.",
+            "Failed to fetch file information from {url}, got status {}.",
             head_response.status()
         ));
     }
@@ -54,6 +54,7 @@ pub async fn request_file_download_info(
 pub async fn download_file(
     client: &Client,
     url: &str,
+    local_filename: Option<&str>,
     multi_progress: &MultiProgress,
     try_to_resume: bool,
 ) -> Result<String, Error> {
@@ -67,21 +68,16 @@ pub async fn download_file(
         if !file_info.supports_resume {
             debug!("Server does support range header");
         } else {
-            let file_metadata = fs::metadata(&file_info.filename).await;
+            let filename = local_filename.unwrap_or(&file_info.filename);
+            let file_metadata = fs::metadata(filename).await;
             if file_metadata.is_ok() {
                 resume_position = file_metadata.ok().unwrap().len();
-                debug!(
-                    "File {} exists with size: {}",
-                    &file_info.filename, resume_position
-                );
+                debug!("File {} exists with size: {}", filename, resume_position);
 
                 head_content_length = file_info.filesize;
                 if head_content_length == resume_position {
-                    println!(
-                        "Skipping download of file {}, already completed",
-                        file_info.filename
-                    );
-                    return Ok(file_info.filename);
+                    println!("Skipping download of file {}, already completed", filename);
+                    return Ok(filename.to_string());
                 }
             }
         }
@@ -99,13 +95,16 @@ pub async fn download_file(
 
     if !response.status().is_success() {
         return Err(anyhow!(
-            "Failed to download file, got status {}.",
+            "Failed to download {url}, got status {}.",
             response.status()
         ));
     }
 
-    // Parse target filename from response
-    let filename = String::from(parse_filename(&response)?);
+    // Use local_filename if provided, otherwise parse from the response
+    let filename = match local_filename {
+        Some(name) => name.to_string(),
+        None => String::from(parse_filename(&response)?),
+    };
 
     let remaining_content_length = response.content_length().unwrap_or(0);
     let total_content_length = if resume_position > 0 {
@@ -122,14 +121,14 @@ pub async fn download_file(
 
     let file = if resume_position == 0 {
         debug!("Opening {filename} in create mode");
-        File::create(filename.clone())
+        File::create(&filename)
             .await
             .with_context(|| format!("Failed to create file {filename}"))?
     } else {
         debug!("Opening {filename} in append mode for resume");
         OpenOptions::new()
             .append(true)
-            .open(filename.clone())
+            .open(&filename)
             .await
             .with_context(|| format!("Failed to open file {filename} in append mode"))?
     };

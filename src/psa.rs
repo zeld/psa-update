@@ -1,3 +1,4 @@
+use std::fmt;
 use std::fs;
 use std::fs::File;
 use std::io::BufReader;
@@ -16,8 +17,14 @@ use indicatif::{DecimalBytes, MultiProgress};
 
 use tar::Archive;
 
+use reqwest::Client;
+use reqwest::redirect::Policy as RedirectPolicy;
+
 use crate::download;
 use crate::interact;
+
+// User agent required by the CloudFront proxy
+pub(crate) const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36";
 
 // URL to query vehicle device: NAC or RCC
 const DEVICE_URL: &str = "https://api.groupe-psa.com/applications/majesticf/v1/devices/{VIN}?client_id=20a4cf7c-f5fb-41d5-9175-a6e23b9880e5";
@@ -175,6 +182,32 @@ pub struct SoftwareUpdate {
     pub license_url: String,
 }
 
+impl SoftwareUpdate {
+    // Firmware updates go through the Majestic UpdateDownload endpoint (and may redirect to CloudFront).
+    // Map updates come directly from TomTom's CDN and are not affected by the CloudFront issue.
+    pub fn is_firmware(&self) -> bool {
+        self.update_url.contains("UpdateDownload")
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum DownloadSource {
+    CloudFront,
+    Majestic,
+}
+
+impl fmt::Display for DownloadSource {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DownloadSource::CloudFront => write!(f, "CloudFront (faster)"),
+            DownloadSource::Majestic => write!(
+                f,
+                "Majestic direct (slower, may fix \"Version not compatible with hardware\")"
+            ),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct DownloadedUpdate {
     pub license_filename: Option<String>,
@@ -190,7 +223,7 @@ pub fn print(software: &Software, update: &SoftwareUpdate) {
     };
     println!(
         "Update available - Type: {:<9} Version: {}",
-        &cyan.apply_to(software_type),
+        cyan.apply_to(software_type),
         cyan.apply_to(&update.update_version)
     );
 
@@ -223,7 +256,7 @@ pub fn print(software: &Software, update: &SoftwareUpdate) {
 }
 
 pub async fn request_device_information(
-    client: &reqwest::Client,
+    client: &Client,
     vin: &str,
 ) -> Result<DeviceResponse, Error> {
     let request = client
@@ -265,7 +298,7 @@ pub async fn request_device_information(
 }
 
 pub async fn request_available_updates(
-    client: &reqwest::Client,
+    client: &Client,
     vin: &str,
     map: Option<&str>,
 ) -> Result<UpdateResponse, Error> {
@@ -343,8 +376,61 @@ pub async fn request_available_updates(
     }
 }
 
+// Stellantis redirects firmware downloads (303) to CloudFront, which can serve files
+// with an invalid signature. The same file is accessible directly on Majestic.
+const MAJESTIC_DIRECT_BASE: &str = "https://majestic-web.mpsa.com/nas/eu/mjb00/PSA/mjbsu/";
+
+fn is_cloudfront_url(url: &str) -> bool {
+    url.contains(".cloudfront.net")
+}
+
+// Probes url for a CloudFront redirect; if found, rewrites it to the Majestic direct path.
+async fn resolve_firmware_url(url: &str) -> Option<String> {
+    let probe_client = Client::builder()
+        .redirect(RedirectPolicy::none())
+        .user_agent(USER_AGENT)
+        .build()
+        .ok()?;
+
+    debug!("Probing for CloudFront redirect: {url}");
+    let response = probe_client.get(url).send().await.ok()?;
+
+    if !response.status().is_redirection() {
+        debug!("No redirect detected for {url}");
+        return None;
+    }
+
+    let location = response
+        .headers()
+        .get("location")
+        .and_then(|v| v.to_str().ok())?;
+
+    debug!("Redirect target: {location}");
+
+    if !is_cloudfront_url(location) {
+        debug!("Redirect is not CloudFront, Majestic not applicable");
+        return None;
+    }
+
+    // Rewrite:  https://[hash].cloudfront.net/.../<filename>
+    //        -> https://majestic-web.mpsa.com/nas/eu/mjb00/PSA/mjbsu/<filename>
+    let filename = location.rsplit('/').next().filter(|s| !s.is_empty())?;
+    let direct_url = format!("{MAJESTIC_DIRECT_BASE}{filename}");
+
+    debug!("Rewritten url: {direct_url}");
+    Some(direct_url)
+}
+
+// Checks if the Majestic direct download is available for the given firmware URL.
+// Returns the Majestic URL if available, None otherwise.
+pub async fn resolve_majestic_url(client: &Client, update_url: &str) -> Option<String> {
+    let majestic_url = resolve_firmware_url(update_url).await?;
+    let status = client.head(&majestic_url).send().await.ok()?.status();
+    status.is_success().then_some(majestic_url)
+}
+
 pub async fn download_update(
-    client: &reqwest::Client,
+    client: &Client,
     software_update: &SoftwareUpdate,
     multi_progress: &MultiProgress,
 ) -> Result<DownloadedUpdate, Error> {
@@ -353,12 +439,39 @@ pub async fn download_update(
         None
     } else {
         Some(
-            download::download_file(client, &software_update.license_url, multi_progress, false)
-                .await?,
+            download::download_file(
+                client,
+                &software_update.license_url,
+                None,
+                multi_progress,
+                false,
+            )
+            .await?,
         )
     };
-    let update_filename =
-        download::download_file(client, &software_update.update_url, multi_progress, true).await?;
+
+    // If the URL points to the Majestic direct path, use a distinct local filename
+    // to avoid mixing bytes from a previous CloudFront download.
+    let local_filename = software_update
+        .update_url
+        .starts_with(MAJESTIC_DIRECT_BASE)
+        .then(|| {
+            software_update
+                .update_url
+                .rsplit('/')
+                .next()
+                .map(|n| n.replacen(".tar", "-majestic.tar", 1))
+        })
+        .flatten();
+
+    let update_filename = download::download_file(
+        client,
+        &software_update.update_url,
+        local_filename.as_deref(),
+        multi_progress,
+        true,
+    )
+    .await?;
     Ok(DownloadedUpdate {
         license_filename,
         update_filename,
