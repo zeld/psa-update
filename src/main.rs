@@ -20,6 +20,8 @@ mod download;
 mod interact;
 mod psa;
 
+use psa::DownloadSource;
+
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     env_logger::init();
@@ -61,6 +63,11 @@ async fn main() -> Result<(), Error> {
             .required(false)
             .long("sequential-download")
             .action(ArgAction::SetTrue))
+        .arg(Arg::new("prefer-majestic")
+            .help("Download firmware directly from Majestic instead of CloudFront. May fix \"Version not compatible with hardware\". Expect slower download.")
+            .required(false)
+            .long("prefer-majestic")
+            .action(ArgAction::SetTrue))
         .get_matches();
 
     let interactive = !matches.get_flag("silent");
@@ -69,6 +76,7 @@ async fn main() -> Result<(), Error> {
     let map = matches.get_one::<String>("map").map(|s| s.as_str());
     let download = matches.get_flag("download");
     let sequential_download = matches.get_flag("sequential-download");
+    let prefer_majestic = matches.get_flag("prefer-majestic");
     let extract_location = matches.get_one::<String>("extract").map(|s| s.as_str());
 
     // Vin not provided on command line, asking interactively
@@ -83,15 +91,14 @@ async fn main() -> Result<(), Error> {
     let vin = vin.unwrap();
 
     let client = Client::builder()
-        // Dummy user agent to make cloudfront proxy happy when downloading firmware files
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36")
+        .user_agent(psa::USER_AGENT)
         .build()
         .context("Failed to create HTTP client")?;
     let device_info = psa::request_device_information(&client, &vin).await?;
-    let is_nac: bool = device_info
+    let is_nac = device_info
         .devices
         .map(|l| l.iter().any(|d| d.ecu_type.contains("NAC")))
-        == Some(true);
+        .unwrap_or(false);
 
     // Maps not provided on command line, asking interactively for NAC
     let map = if map.is_none() && is_nac && interactive {
@@ -126,8 +133,23 @@ async fn main() -> Result<(), Error> {
             // An empty update can be sent by the server when there is no available update
             if !update.update_id.is_empty() {
                 psa::print(&software, update);
-                if download || (interactive && interact::confirm("Download update?")?) {
-                    selected_updates.push(update.clone());
+                let do_download =
+                    download || (interactive && interact::confirm("Download update?")?);
+                if do_download {
+                    let mut owned = update.clone();
+                    if update.is_firmware()
+                        && let Some(url) =
+                            psa::resolve_majestic_url(&client, &update.update_url).await
+                    {
+                        let use_majestic = if interactive && !download {
+                            interact::select_download_source()? == DownloadSource::Majestic
+                        } else {
+                            prefer_majestic
+                        };
+                        if use_majestic {
+                            owned.update_url = url;
+                        }
+                    }
                     let update_size = match update.update_size.parse() {
                         Ok(size) => size,
                         Err(_) => {
@@ -136,6 +158,7 @@ async fn main() -> Result<(), Error> {
                         }
                     };
                     total_update_size += update_size;
+                    selected_updates.push(owned);
                 }
             }
         }
@@ -224,9 +247,8 @@ async fn main() -> Result<(), Error> {
                 psa::extract_update(&update, destination_path)
                     .context("Failed to extract update")?;
             }
-            println!(
-                "\n\nExtraction complete. The update can be applied on the car infotainment system:"
-            );
+            println!("\n\n{}\n", style("=== Step 4: Updating the car ===").cyan());
+            println!("To update the car infotainment system:");
             println!(" - Start the car and keep the engine running");
             println!(" - Insert the USB drive into the car USB port");
             println!(
@@ -241,6 +263,7 @@ async fn main() -> Result<(), Error> {
                     "\nFor more details, refer to vendor instructions. For example, for Peugeot RCC: https://web.archive.org/web/20230602131011/https://media-ct-ndp.peugeot.com/file/38/0/map-software-nac-en.632380.pdf"
                 );
             }
+            println!("\nThe downloaded update files in the current directory can now be removed.");
         }
         None => {
             println!("No location, skipping extraction");

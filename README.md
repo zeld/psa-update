@@ -71,11 +71,26 @@ Options:
       --download             Automatically proceed with download of updates. Previous downloads will be resumed.
       --extract <extract>    Location where to extract update files. Should be the root of an empty FAT32 USB drive.
       --sequential-download  Forces sequential download of updates. By default updates are downloaded concurrently.
+      --prefer-majestic      Download firmware directly from Majestic instead of CloudFront. May fix "Version not compatible with hardware". Expect slower download.
   -h, --help                 Print help
   -V, --version              Print version
 ```
 
-A silent (non-interactive) mode can be activated using the `--silent` flag. It allows to fully automate the download and extraction.
+### Firmware with invalid signature
+
+Since February 2026, Stellantis's CloudFront CDN serves a broken NAC firmware file that causes the car to display **"Version not compatible with hardware"**.
+
+When running interactively, the download source is offered as a choice after confirming a firmware download.
+
+For non-interactive use, pass `--prefer-majestic` to always download from Majestic:
+
+```shell
+$ psa-update --prefer-majestic
+```
+
+### Silent mode
+
+A silent (non-interactive) mode can be activated using the `--silent` flag. It enables to fully automate the download and extraction.
 
 For example, to check for updates and automatically download and extract them onto a USB drive, you can use the following command:
 

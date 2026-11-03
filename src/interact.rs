@@ -7,6 +7,7 @@ use dialoguer::{Confirm, Input, Select};
 use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::psa;
+use crate::psa::DownloadSource;
 
 pub fn confirm(message: &str) -> Result<bool, Error> {
     Ok(Confirm::new().with_prompt(message).interact()?)
@@ -30,6 +31,17 @@ pub fn select_map() -> Result<Option<&'static str>, Error> {
     let map_code = select("Check for a map update (hit ESC to skip)", &items)?
         .map(|index| psa::MAPS[index].get_code());
     Ok(map_code)
+}
+
+pub fn select_download_source() -> Result<DownloadSource, Error> {
+    let items = [DownloadSource::CloudFront, DownloadSource::Majestic];
+    let index = Select::new()
+        .items(items)
+        .default(0)
+        .with_prompt("Download source")
+        .interact_opt()?
+        .unwrap_or(0);
+    Ok(items[index])
 }
 
 pub fn warn(message: &str) {
